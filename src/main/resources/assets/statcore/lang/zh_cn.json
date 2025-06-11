@@ -8,12 +8,6 @@
   "command.statcore.stat.not_living_entity": "§c错误：只有生物实体才能查看属性。",
   "command.statcore.stat.target_not_living": "§c错误：目标不是生物实体。",
   
-  "statcore.system.attribute_registered": "已注册属性: %s",
-  "statcore.system.attribute_registry_cleared": "属性注册表已清空",
-  "statcore.system.entity_attributes_initialized": "已初始化实体属性: %s",
-  "statcore.system.attribute_manager_cleared": "属性管理器已清空",
-  "statcore.system.calculation_formula": "计算公式: (基础值 + 加法修改器) × (1 + 乘法修改器)",
-  
   "statcore.entity_category.player": "玩家",
   "statcore.entity_category.monster": "怪物",
   "statcore.entity_category.animal": "动物",
@@ -74,11 +68,5 @@
   "statcore.potion.resistance.name": "抗性提升",
   "statcore.potion.resistance.desc": "每级+%s真实防御",
   "statcore.potion.health_boost.name": "生命提升",
-  "statcore.potion.health_boost.desc": "每级+%s血量",
-  "statcore.potion.effect_applied": "§a药水效果已应用：%s %s级",
-  "statcore.potion.effect_removed": "§7药水效果已移除：%s",
-  "statcore.potion.effect_expired": "§8药水效果已过期：%s",
-  
-  "statcore.healthbar.adjusted": "血量条显示已调整以保持10颗心",
-  "statcore.healthbar.restored": "血量条显示已恢复为真实值"
-} 
+  "statcore.potion.health_boost.desc": "每级+%s血量"
+}

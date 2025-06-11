@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.player.LocalPlayer
 import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.ai.attributes.Attributes
+import net.minecraft.resources.ResourceLocation
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.bus.api.SubscribeEvent
@@ -20,9 +21,13 @@ import org.slf4j.LoggerFactory
  * 确保生命提升效果不会在血量条上显示额外的心
  */
 @EventBusSubscriber(modid = "statcore", value = [Dist.CLIENT])
+@Suppress("unused")
 object HealthBarHandler {
     
     private val LOGGER = LoggerFactory.getLogger("statcore.health_bar")
+    
+    // 原版生命提升效果的修改器来源标识
+    private val VANILLA_HEALTH_BOOST_ID = ResourceLocation.fromNamespaceAndPath("minecraft", "effect.health_boost")
     
     // 用于跟踪血量条状态
     private var lastKnownMaxHealth = 20.0
@@ -147,20 +152,28 @@ object HealthBarHandler {
     }
     
     /**
-     * 移除客户端上的原版生命提升修改器
+     * 移除客户端上的原版生命提升修改器（使用精确的ResourceLocation标识）
      */
     private fun removeVanillaHealthBoostModifiers(player: LocalPlayer) {
         try {
             val vanillaHealthInstance = player.attributes.getInstance(Attributes.MAX_HEALTH)
             if (vanillaHealthInstance != null) {
-                val modifiersToRemove = vanillaHealthInstance.modifiers.filter { modifier ->
-                    // 原版生命提升修改器特征：正数且为4的倍数
-                    modifier.amount > 0 && (modifier.amount % 4.0 == 0.0)
-                }
+                // 通过精确的ResourceLocation来移除原版生命提升修改器
+                val modifierRemoved = vanillaHealthInstance.removeModifier(VANILLA_HEALTH_BOOST_ID)
                 
-                modifiersToRemove.forEach { modifier ->
-                    vanillaHealthInstance.removeModifier(modifier.id)
-                    LOGGER.debug("客户端移除原版生命提升修改器: {} ({})", modifier.id, modifier.amount)
+                if (modifierRemoved) {
+                    LOGGER.debug("客户端精确移除原版生命提升修改器: {}", VANILLA_HEALTH_BOOST_ID)
+                } else {
+                    // 如果通过ID移除失败，尝试通过特征移除（作为备用方案）
+                    val modifiersToRemove = vanillaHealthInstance.modifiers.filter { modifier ->
+                        // 原版生命提升修改器特征：正数且为4的倍数
+                        modifier.amount > 0 && (modifier.amount % 4.0 == 0.0)
+                    }
+                    
+                    modifiersToRemove.forEach { modifier ->
+                        vanillaHealthInstance.removeModifier(modifier.id)
+                        LOGGER.debug("客户端通过特征移除原版生命提升修改器: {} ({})", modifier.id, modifier.amount)
+                    }
                 }
             }
         } catch (e: Exception) {
