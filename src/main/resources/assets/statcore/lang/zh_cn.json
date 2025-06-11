@@ -1,0 +1,55 @@
+{
+  "command.statcore.stat.header": "§6=== %s 的属性信息 ===",
+  "command.statcore.stat.no_attributes": "§7该实体没有任何可用属性。",
+  "command.statcore.stat.namespace_header": "§e[%s]",
+  "command.statcore.stat.attribute_simple": "  §f%s: §a%s",
+  "command.statcore.stat.attribute_with_modifiers": "  §f%s: §7%s §f→ §a%s §8(§7%d个修改器§8)",
+  "command.statcore.stat.summary": "§8总计: §7%d个属性 §8| §7%d个实体已加载",
+  "command.statcore.stat.not_living_entity": "§c错误：只有生物实体才能查看属性。",
+  "command.statcore.stat.target_not_living": "§c错误：目标不是生物实体。",
+  
+  "statcore.system.attribute_registered": "已注册属性: %s",
+  "statcore.system.attribute_registry_cleared": "属性注册表已清空",
+  "statcore.system.entity_attributes_initialized": "已初始化实体属性: %s",
+  "statcore.system.attribute_manager_cleared": "属性管理器已清空",
+  "statcore.system.calculation_formula": "计算公式: (基础值 + 加法修改器) × (1 + 乘法修改器)",
+  
+  "statcore.entity_category.player": "玩家",
+  "statcore.entity_category.monster": "怪物",
+  "statcore.entity_category.animal": "动物",
+  "statcore.entity_category.npc": "NPC",
+  "statcore.entity_category.other": "其他生物",
+  
+  "statcore.modifier.operation.addition": "加法",
+  "statcore.modifier.operation.multiply": "乘法",
+  
+  "statcore.error.attribute_already_registered": "属性 %s 已经注册过了",
+  "statcore.error.attribute_not_found": "未找到属性: %s",
+  "statcore.error.invalid_modifier": "无效的属性修改器",
+  "statcore.error.calculation_failed": "属性计算失败: %s",
+  "statcore.error.entity_not_applicable": "属性 %s 不适用于实体类型 %s",
+  
+  "attribute.statcore.max_health": "最大生命值",
+  "attribute.statcore.current_health": "当前生命值",
+  "attribute.statcore.health_regeneration": "生命恢复",
+  "attribute.statcore.physical_defense": "物理防御",
+  "attribute.statcore.projectile_defense": "弹射物防御",
+  "attribute.statcore.explosion_defense": "爆炸防御",
+  "attribute.statcore.fire_defense": "火焰防御",
+  "attribute.statcore.true_defense": "真实防御",
+  
+  "defense.statcore.physical": "物理",
+  "defense.statcore.projectile": "弹射物",
+  "defense.statcore.explosion": "爆炸",
+  "defense.statcore.fire": "火焰",
+  "defense.statcore.true_defense": "真实",
+  
+  "command.statcore.stat.title": "%s 的属性信息",
+  "command.statcore.stat.format": "%s: %.2f",
+  "command.statcore.stat.no_target": "未找到目标实体",
+  "command.statcore.stat.success": "已显示属性信息",
+  
+  "error.statcore.attribute_not_found": "未找到属性: %s",
+  "error.statcore.entity_not_found": "未找到实体",
+  "error.statcore.calculation_failed": "属性计算失败"
+} 

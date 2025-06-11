@@ -1,0 +1,55 @@
+{
+  "command.statcore.stat.header": "§6=== %s's Attributes ===",
+  "command.statcore.stat.no_attributes": "§7This entity has no available attributes.",
+  "command.statcore.stat.namespace_header": "§e[%s]",
+  "command.statcore.stat.attribute_simple": "  §f%s: §a%s",
+  "command.statcore.stat.attribute_with_modifiers": "  §f%s: §7%s §f→ §a%s §8(§7%d modifiers§8)",
+  "command.statcore.stat.summary": "§8Total: §7%d attributes §8| §7%d entities loaded",
+  "command.statcore.stat.not_living_entity": "§cError: Only living entities can have attributes checked.",
+  "command.statcore.stat.target_not_living": "§cError: Target is not a living entity.",
+  
+  "statcore.system.attribute_registered": "Registered attribute: %s",
+  "statcore.system.attribute_registry_cleared": "Attribute registry cleared",
+  "statcore.system.entity_attributes_initialized": "Initialized entity attributes: %s",
+  "statcore.system.attribute_manager_cleared": "Attribute manager cleared",
+  "statcore.system.calculation_formula": "Calculation formula: (Base value + Addition modifiers) × (1 + Multiply modifiers)",
+  
+  "statcore.entity_category.player": "Player",
+  "statcore.entity_category.monster": "Monster",
+  "statcore.entity_category.animal": "Animal",
+  "statcore.entity_category.npc": "NPC",
+  "statcore.entity_category.other": "Other Entity",
+  
+  "statcore.modifier.operation.addition": "Addition",
+  "statcore.modifier.operation.multiply": "Multiply",
+  
+  "statcore.error.attribute_already_registered": "Attribute %s is already registered",
+  "statcore.error.attribute_not_found": "Attribute not found: %s",
+  "statcore.error.invalid_modifier": "Invalid attribute modifier",
+  "statcore.error.calculation_failed": "Attribute calculation failed: %s",
+  "statcore.error.entity_not_applicable": "Attribute %s is not applicable to entity type %s",
+  
+  "attribute.statcore.max_health": "Max Health",
+  "attribute.statcore.current_health": "Current Health",
+  "attribute.statcore.health_regeneration": "Health Regeneration",
+  "attribute.statcore.physical_defense": "Physical Defense",
+  "attribute.statcore.projectile_defense": "Projectile Defense",
+  "attribute.statcore.explosion_defense": "Explosion Defense",
+  "attribute.statcore.fire_defense": "Fire Defense",
+  "attribute.statcore.true_defense": "True Defense",
+  
+  "defense.statcore.physical": "Physical",
+  "defense.statcore.projectile": "Projectile",
+  "defense.statcore.explosion": "Explosion",
+  "defense.statcore.fire": "Fire",
+  "defense.statcore.true_defense": "True",
+  
+  "command.statcore.stat.title": "%s's Attributes",
+  "command.statcore.stat.format": "%s: %.2f",
+  "command.statcore.stat.no_target": "Target entity not found",
+  "command.statcore.stat.success": "Displayed attribute information",
+  
+  "error.statcore.attribute_not_found": "Attribute not found: %s",
+  "error.statcore.entity_not_found": "Entity not found",
+  "error.statcore.calculation_failed": "Attribute calculation failed"
+}

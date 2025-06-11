@@ -1,0 +1,261 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# StatCore 属性重构模组开发规范
+
+## 项目概述
+StatCore 是一个基于 Minecraft 1.21.5 + NeoForge 21.5.75 的属性系统重构模组，旨在重新设计原版属性计算逻辑，提供模块化扩展支持，并为其他模组提供清晰的 API 接口。
+
+## 核心开发原则
+- **KISS**: 保持简单，避免过度设计
+- **DRY**: 代码复用，但警惕过度抽象
+- **YAGNI**: 仅实现当前需求
+- **强制中文回复**: AI 必须使用中文进行所有交互
+- **API 优先**: 编写代码前必须先搜索相关 API 用法，禁止盲目编写
+- **完善 i18n**: 禁止硬编码文本，所有用户可见文本必须通过本地化文件支持
+
+补充：由于在起步开发阶段，为了更好的实现需求并改进我们的结构框架，你可以适当修改API
+
+## 项目结构规划
+
+### 核心模块
+```
+src/main/kotlin/com/arteam/statcore/
+├── api/                   # 公共 API 接口
+│   ├── attributes/        # 属性相关 API
+│   ├── events/            # 自定义事件
+│   └── registry/          # 注册接口
+├── core/                  # 核心系统
+│   ├── attributes/        # 属性系统核心
+│   ├── calculation/       # 计算引擎
+│   └── registry/          # 注册管理器
+├── compat/                # 兼容性层
+│   ├── vanilla/           # 原版兼容
+│   └── modded/            # 模组兼容
+├── config/                # 配置系统
+├── data/                  # 数据包支持
+├── integration/           # 第三方集成
+└── util/                  # 工具类
+```
+
+### 资源文件结构
+```
+src/main/resources/
+├── assets/statcore/
+│   ├── lang/              # 多语言支持
+│   │   ├── en_us.json     # 英文
+│   │   └── zh_cn.json     # 中文
+│   └── textures/          # 纹理资源（优先使用原版纹理）
+├── data/statcore/
+│   ├── attributes/        # 属性定义
+│   ├── recipes/           # 配方
+│   └── tags/              # 标签
+└── META-INF/
+    └── neoforge.mods.toml # 模组信息
+```
+
+## 1. 属性系统重构
+
+### 核心属性接口
+```kotlin
+interface StatAttribute {
+    val id: ResourceLocation
+    val defaultValue: Double
+    val minValue: Double
+    val maxValue: Double
+    val isStackable: Boolean
+    
+    fun calculate(base: Double, modifiers: List<AttributeModifier>): Double
+}
+```
+
+### 属性计算引擎
+- 实现 `AttributeCalculationEngine` 类
+- 支持多种计算模式（加法、乘法、覆盖）
+- 提供计算缓存机制
+- 支持异步计算（非关键路径）
+
+### 自定义属性系统
+- 暴击伤害（Crit Damage）
+- 护甲穿透（Armor Penetration）
+- 法术强度（Spell Power）
+- 能量恢复（Energy Regeneration）
+- 经验加成（Experience Bonus）
+
+## 2. API 设计规范
+
+### 事件系统
+```kotlin
+// 属性计算事件
+class AttributeCalculationEvent(
+    val entity: LivingEntity,
+    val attribute: Attribute,
+    var result: Double
+) : Event()
+
+// 属性修改事件
+class AttributeModifierEvent(
+    val entity: LivingEntity,
+    val attribute: Attribute,
+    val modifiers: MutableList<AttributeModifier>
+) : Event()
+```
+
+### 注册接口
+```kotlin
+interface AttributeRegistry {
+    fun register(attribute: StatAttribute): StatAttribute
+    fun getAttributes(): Collection<StatAttribute>
+    fun getAttribute(id: ResourceLocation): StatAttribute?
+}
+```
+
+### 修改器接口
+```kotlin
+interface AttributeModifierProvider {
+    fun getModifiers(entity: LivingEntity, attribute: Attribute): List<AttributeModifier>
+    fun getPriority(): Int
+}
+```
+
+## 3. 配置与数据包支持
+
+### 配置文件结构
+```yaml
+# config/statcore-common.toml
+[attributes]
+    enable_custom_attributes = true
+    enable_calculation_cache = true
+    cache_duration_ms = 1000
+
+[compatibility]
+    override_vanilla_calculation = true
+    enable_mod_integration = true
+
+[debug]
+    log_calculations = false
+    log_modifier_applications = false
+```
+
+### 数据包支持
+- JSON 格式的属性定义
+- 支持条件应用
+- 支持实体类型过滤
+- 支持维度限制
+
+## 4. 兼容性要求
+
+- 提供 Mixin 挂钩点
+- 支持其他模组的属性扩展
+- 兼容常见的装备模组
+- 提供迁移工具
+
+## 5. 开发工具与注解
+
+### 注解处理器
+```kotlin
+@AttributeDefinition
+annotation class DefineAttribute(
+    val id: String,
+    val defaultValue: Double = 0.0,
+    val min: Double = Double.MIN_VALUE,
+    val max: Double = Double.MAX_VALUE
+)
+
+@ModifierProvider
+annotation class ProvideModifier(
+    val priority: Int = 0,
+    val target: Array<String> = []
+)
+```
+
+### 代码生成器
+- 自动生成属性注册代码
+- 生成 API 文档
+- 创建示例配置文件
+
+## 6. 测试策略
+
+### 单元测试
+- 属性计算逻辑测试
+- 修改器应用测试
+- 事件触发测试
+
+### 集成测试
+- 多模组环境测试
+- 性能基准测试
+- 兼容性测试
+
+## 7. 性能优化
+
+### 缓存策略
+- 计算结果缓存
+- 修改器列表缓存
+- 事件监听器缓存
+
+### 异步处理
+- 非关键路径异步计算
+- 批量更新支持
+- 懒加载机制
+
+## 8. 国际化要求
+
+### 必须本地化的内容
+- 所有属性名称
+- 错误消息
+- 配置描述
+- JEI/EMI 集成文本
+- 调试信息
+
+### 本地化文件格式
+```json
+{
+  "attribute.statcore.crit_damage": "暴击伤害",
+  "attribute.statcore.armor_penetration": "护甲穿透",
+  "config.statcore.enable_custom_attributes": "启用自定义属性",
+  "error.statcore.invalid_modifier": "无效的属性修改器"
+}
+```
+
+## 9. 调试与监控
+
+### 调试工具
+- 属性查看命令 `/stat [entity]`
+- 计算过程追踪
+- 性能分析工具
+
+### 日志系统
+- 分级日志（ERROR, WARN, INFO, DEBUG）
+- 可配置的日志输出
+- 错误报告收集
+
+## 10. 发布与维护
+
+### 版本控制
+- 语义化版本号（SemVer）
+- 变更日志维护
+- 兼容性矩阵
+
+### 文档要求
+- API 文档（KDoc）
+- 使用指南
+- 迁移指南
+- 常见问题解答
+
+## 开发流程
+1. **设计阶段**: 确定 API 接口和数据结构
+2. **核心开发**: 实现属性系统核心功能
+3. **API 开发**: 创建公共接口和事件系统
+4. **兼容性**: 实现原版和模组兼容
+5. **测试验证**: 全面测试各项功能
+6. **文档完善**: 编写完整的使用文档
+7. **发布准备**: 打包、测试、发布
+
+## 注意事项
+- 所有代码必须包含适当的 KDoc 注释
+- 关键算法需要性能测试
+- 新功能必须有对应的测试用例
+- 配置变更需要向后兼容
+- UI 界面优先使用原版 Minecraft 纹理和样式
