@@ -52,8 +52,11 @@ jobs:
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "initial")
           # 获取从上一个标签到现在的所有提交信息
           COMMITS=$(git log $PREV_TAG..HEAD --pretty=format:"- %s" --reverse)
+          # 将提交信息写入临时文件
+          echo "$COMMITS" > commit_history.txt
+          # 读取文件内容并设置输出
           echo "commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMITS" >> $GITHUB_OUTPUT
+          cat commit_history.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Get latest release info
@@ -79,12 +82,15 @@ jobs:
           BUILD_TIME=$(date +'%Y-%m-%d %H:%M:%S')
           COMMIT_HASH=$(git rev-parse --short HEAD)
 
+          # 读取提交历史
+          COMMIT_HISTORY=$(cat commit_history.txt)
+
           {
             echo "body<<EOF"
             echo "## StatCore v${{ steps.version.outputs.version }}"
             echo ""
             echo "### 更新内容"
-            echo "${{ steps.commits.outputs.commits }}"
+            echo "$COMMIT_HISTORY"
             echo ""
             echo "### 构建信息"
             echo "- 版本: ${{ steps.version.outputs.version }}"
