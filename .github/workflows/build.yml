@@ -47,10 +47,8 @@ jobs:
         if: success()
         with:
           name: StatCore-Artifacts
-          path: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
-            !build/libs/*-javadoc.jar
+          path: build/libs/*.jar
+          if-no-files-found: error
 
       - name: Get timestamp and short SHA
         id: timestamp
@@ -67,7 +65,4 @@ jobs:
           automatic_release_tag: ${{ steps.timestamp.outputs.timestamp }}
           prerelease: true
           title: "${{ steps.timestamp.outputs.repo_name }}-${{ steps.timestamp.outputs.short_sha }} Release"
-          files: |
-            build/libs/*.jar
-            !build/libs/*-sources.jar
-            !build/libs/*-javadoc.jar
+          files: build/libs/*.jar
