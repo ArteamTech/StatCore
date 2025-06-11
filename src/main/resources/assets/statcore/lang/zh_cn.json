@@ -69,5 +69,16 @@
   
   "error.statcore.attribute_not_found": "未找到属性: %s",
   "error.statcore.entity_not_found": "未找到实体",
-  "error.statcore.calculation_failed": "属性计算失败"
+  "error.statcore.calculation_failed": "属性计算失败",
+  
+  "statcore.potion.resistance.name": "抗性提升",
+  "statcore.potion.resistance.desc": "每级+%s真实防御",
+  "statcore.potion.health_boost.name": "生命提升",
+  "statcore.potion.health_boost.desc": "每级+%s血量",
+  "statcore.potion.effect_applied": "§a药水效果已应用：%s %s级",
+  "statcore.potion.effect_removed": "§7药水效果已移除：%s",
+  "statcore.potion.effect_expired": "§8药水效果已过期：%s",
+  
+  "statcore.healthbar.adjusted": "血量条显示已调整以保持10颗心",
+  "statcore.healthbar.restored": "血量条显示已恢复为真实值"
 } 

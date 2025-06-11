@@ -91,10 +91,6 @@ object HealthSyncHandler {
                 // 以原版血量为准，更新我们的系统
                 val syncedHealth = min(vanillaHealth, ourMaxHealth)
                 AttributeManager.setAttributeValue(entity, CoreAttributes.CURRENT_HEALTH, syncedHealth)
-                
-                val entityType = if (entity is Player) "玩家" else entity.type.description.string
-                LOGGER.debug("同步实体 {} ({}) 血量: 原版={}, 系统={} -> {}", 
-                    entityType, entity.uuid, vanillaHealth, ourCurrentHealth, syncedHealth)
             }
         } catch (e: Exception) {
             LOGGER.error("同步血量时发生错误: {}", e.message, e)
