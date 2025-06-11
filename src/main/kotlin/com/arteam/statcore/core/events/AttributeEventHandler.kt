@@ -63,9 +63,6 @@ object AttributeEventHandler {
         val scaledAmount = originalAmount * StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR.toFloat()
         event.amount = scaledAmount
         
-        LOGGER.debug("实体 {} 治疗量从 {} 放大到 {}", 
-            entity.uuid, originalAmount, scaledAmount)
-        
         // 治疗后立即同步血量
         ImmediateSyncManager.asyncForceSyncAll(entity)
     }
@@ -94,10 +91,6 @@ object AttributeEventHandler {
         
         // 更新事件
         event.newDamage = finalDamage
-        
-        LOGGER.debug("实体 {} 受到伤害: 原始={}, 放大={}, 防御类型={}, 减免={}%, 最终={}", 
-            entity.uuid, originalDamage, scaledDamage, defenseType.id, 
-            String.format("%.2f", damageReduction * 100), finalDamage)
         
         // 受伤后立即同步血量
         ImmediateSyncManager.asyncForceSyncAll(entity)
@@ -167,9 +160,6 @@ object AttributeEventHandler {
         
         // 设置原版当前血量
         entity.health = scaledCurrentHealth.toFloat()
-        
-        LOGGER.debug("实体 {} 生命值迁移: 原版基础={}, 当前={}/{}, 新值={}/{}", 
-            entity.uuid, vanillaBaseMaxHealth, vanillaCurrentHealth, vanillaMaxHealth, scaledCurrentHealth, scaledMaxHealth)
     }
     
     /**
@@ -294,7 +284,6 @@ object AttributeEventHandler {
         
         // 总是设置物理防御值，即使是0也要设置（用于初始化）
         AttributeManager.setAttributeBaseValue(entity, CoreAttributes.PHYSICAL_DEFENSE, physicalDefense)
-        LOGGER.debug("实体 {} 护甲迁移: 原版护甲={}, 物理防御={}", entity.uuid, vanillaArmor, physicalDefense)
     }
     
     /**

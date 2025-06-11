@@ -69,5 +69,26 @@
   
   "error.statcore.attribute_not_found": "Attribute not found: %s",
   "error.statcore.entity_not_found": "Entity not found",
-  "error.statcore.calculation_failed": "Attribute calculation failed"
+  "error.statcore.calculation_failed": "Attribute calculation failed",
+  
+  "screen.statcore.attributes": "Attributes Screen",
+  "gui.statcore.attributes.title": "Character Attributes",
+  "gui.statcore.health": "Health",
+  "gui.statcore.defense": "Defense",
+  "gui.statcore.inventory": "Inventory",
+  "gui.statcore.attributes": "Attributes",
+  "gui.statcore.back_to_inventory": "Back to Inventory",
+  "gui.statcore.inventory.tooltip": "Inventory Screen",
+  "gui.statcore.attributes.tooltip": "View Character Attributes",
+  
+  "gui.statcore.defense.tooltip.title": "§6Defense Attributes Details",
+  "gui.statcore.defense.physical": "Physical Defense",
+  "gui.statcore.defense.projectile": "Projectile Defense", 
+  "gui.statcore.defense.explosion": "Explosion Defense",
+  "gui.statcore.defense.fire": "Fire Defense",
+  "gui.statcore.defense.true": "True Defense",
+  
+  "gui.statcore.tooltip.base_value": "Base Value",
+  "gui.statcore.tooltip.modifiers": "Modifiers",
+  "gui.statcore.tooltip.more_modifiers": "%d more modifiers..."
 }
