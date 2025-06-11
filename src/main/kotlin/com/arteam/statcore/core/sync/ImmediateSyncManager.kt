@@ -1,14 +1,17 @@
 package com.arteam.statcore.core.sync
 
+import com.arteam.statcore.StatCore
 import com.arteam.statcore.attributes.CoreAttributes
 import com.arteam.statcore.core.attributes.AttributeManager
 import net.minecraft.world.entity.LivingEntity
 import org.slf4j.LoggerFactory
+import kotlin.math.min
 
 /**
  * 即时同步管理器
  * 提供强制立即同步功能，用于关键操作后的属性同步
  */
+@Suppress("unused")
 object ImmediateSyncManager {
     
     private val LOGGER = LoggerFactory.getLogger("statcore.immediate_sync")
@@ -41,7 +44,7 @@ object ImmediateSyncManager {
             // 同步当前血量
             val vanillaHealth = entity.health.toDouble()
             val maxHealth = AttributeManager.getAttributeValue(entity, CoreAttributes.MAX_HEALTH)
-            val syncedHealth = Math.min(vanillaHealth, maxHealth)
+            val syncedHealth = min(vanillaHealth, maxHealth)
             
             AttributeManager.setAttributeValue(entity, CoreAttributes.CURRENT_HEALTH, syncedHealth)
             
@@ -64,7 +67,7 @@ object ImmediateSyncManager {
         try {
             // 重新计算并同步防御值
             val currentArmor = entity.armorValue.toDouble()
-            val physicalDefense = currentArmor * 5.0
+            val physicalDefense = currentArmor * StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
             
             AttributeManager.setAttributeBaseValue(entity, CoreAttributes.PHYSICAL_DEFENSE, physicalDefense)
             AttributeSyncManager.syncEntityAttributes(entity)

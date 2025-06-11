@@ -11,6 +11,7 @@ StatCore 是一个为 Minecraft 1.21.5 + NeoForge 21.5.75 设计的属性系统�
 - **精确控制**：细粒度的实体类型适用性控制
 - **灵活计算**：统一的计算公式加上自定义计算支持
 - **线程安全**：使用 ConcurrentHashMap 确保并发安全
+- **无限制属性**：支持属性值无限增长，不受传统游戏平衡约束
 
 ### 2. 实体类型精确控制
 ```kotlin
@@ -34,7 +35,59 @@ val customAttribute = BaseStatAttribute.custom(
 - **NPC** - NPC（村民等）
 - **OTHER** - 其他生物
 
-### 3. 简化的修改器系统
+### 3. 无限制属性值系统
+
+#### 概念说明
+StatCore 支持属性值无限增长，让生命值、防御值等可以达到任意大小，打破传统游戏的数值限制。
+
+#### 设置无限制属性
+```kotlin
+// 无最大值限制的生命值属性
+val unlimitedHealth = BaseStatAttribute.universal(
+    id = AttributeUtils.createStatCoreLocation("max_health"),
+    defaultValue = 100.0,
+    minValue = 1.0,
+    maxValue = Double.POSITIVE_INFINITY  // 无最大值限制
+)
+
+// 无最大值限制的防御属性
+val unlimitedDefense = BaseStatAttribute.universal(
+    id = AttributeUtils.createStatCoreLocation("physical_defense"),
+    defaultValue = 0.0,
+    minValue = 0.0,
+    maxValue = Double.POSITIVE_INFINITY  // 无最大值限制
+)
+```
+
+#### 检查属性限制
+```kotlin
+// 检查属性是否有最大值限制
+if (!attribute.hasMaxValueLimit()) {
+    println("该属性可以无限增长")
+}
+
+// 检查属性是否有最小值限制
+if (!attribute.hasMinValueLimit()) {
+    println("该属性没有最小值限制")
+}
+```
+
+#### 安全值处理
+虽然属性可以无限大，但原版 Minecraft 系统有限制，StatCore 会自动处理：
+
+```kotlin
+// 同步管理器会自动将过大的值限制在原版系统能处理的范围内
+val safeValue = AttributeSyncManager.getSafeVanillaValue(value, 1024.0)
+```
+
+#### 显示格式化
+```kotlin
+// 安全地格式化无限大的属性值
+val displayValue = AttributeUtils.formatAttributeValueSafe(value)
+// 结果：普通数值显示为 "123.45"，无限大显示为 "∞"
+```
+
+### 4. 简化的修改器系统
 **仅保留两种操作类型**：
 - **ADDITION**：加法运算
 - **MULTIPLY**：乘法运算
@@ -52,22 +105,150 @@ val customAttribute = BaseStatAttribute.custom(
 // 最终值 = (20 + 10 + 5) × (1 + 0.5 + 0.25) = 35 × 1.75 = 61.25
 ```
 
-### 4. 自定义计算支持
+### 5. 自定义计算支持
 开发者可以重写 `customCalculate` 方法实现特殊逻辑：
 
 ```kotlin
-val customAttribute = object : BaseStatAttribute(...) {
+class CustomAttribute : BaseStatAttribute(...) {
     override fun customCalculate(baseValue: Double, modifiers: List<AttributeModifier>): Double? {
         // 自定义计算逻辑
-        // 返回 null 则使用默认计算
-        return customResult
+        return null // 返回 null 使用默认计算
     }
 }
 ```
 
-### 5. 命令支持
-- `/stat` - 查看自己的属性
-- `/stat <target>` - 查看指定实体的属性（需要管理员权限）
+## 已实现的核心属性
+
+### 生命值系统
+- **最大生命值** (`max_health`) - 无最大值限制
+- **当前生命值** (`current_health`) - 无最大值限制  
+- **生命恢复** (`health_regeneration`) - 有合理上限
+
+### 防御系统
+- **物理防御** (`physical_defense`) - 无最大值限制
+- **弹射物防御** (`projectile_defense`) - 无最大值限制
+- **爆炸防御** (`explosion_defense`) - 无最大值限制
+- **火焰防御** (`fire_defense`) - 无最大值限制
+- **真实防御** (`true_defense`) - 无最大值限制
+
+#### 防御计算公式
+```
+伤害减免率 = 防御值 / (防御值 + 100)
+```
+
+这个公式确保：
+- 0防御 = 0%减伤
+- 100防御 = 50%减伤
+- 900防御 = 90%减伤
+- 无限防御 = 接近100%减伤
+
+### 原版兼容性
+
+#### 自动同步
+- **生命值同步**：自动同步到原版生命值系统
+- **安全限制**：自动限制传递给原版系统的值，避免崩溃
+- **透明处理**：对其他模组透明，不影响现有功能
+
+#### 迁移支持
+- **自动迁移**：将原版属性值自动迁移到新系统
+- **数值缩放**：玩家生命值×5，其他实体保持比例
+- **向前兼容**：支持原版和其他模组的属性修改
+
+### 性能优化
+
+#### 计算缓存
+- **结果缓存**：缓存计算结果避免重复计算
+- **懒计算**：仅在需要时计算属性值
+- **缓存失效**：修改器变化时自动失效缓存
+
+#### 并发安全
+- **线程安全**：使用 ConcurrentHashMap 存储
+- **原子操作**：确保属性修改的原子性
+- **无锁设计**：尽量避免锁竞争
+
+### 开发者 API
+
+#### 属性创建
+```kotlin
+// 创建无限制属性
+val customAttribute = BaseStatAttribute.universal(
+    id = AttributeUtils.createStatCoreLocation("custom_stat"),
+    defaultValue = 0.0,
+    minValue = 0.0,
+    maxValue = Double.POSITIVE_INFINITY  // 无限制
+)
+
+// 注册属性
+AttributeManager.registerAttribute(customAttribute)
+```
+
+#### 属性操作
+```kotlin
+// 设置属性值
+AttributeUtils.setAttributeBaseValue(entity, attribute, 9999999.0)
+
+// 获取属性值
+val value = AttributeUtils.getAttributeValue(entity, attribute)
+
+// 检查是否超出推荐范围
+if (AttributeUtils.isValueBeyondRecommended(value)) {
+    // 处理过大的值
+}
+```
+
+#### 修改器管理
+```kotlin
+// 添加修改器
+val modifierId = AttributeUtils.addTemporaryModifier(
+    entity, attribute, "强化效果", 500.0, 
+    AttributeOperation.ADDITION, source
+)
+
+// 移除修改器
+AttributeUtils.removeModifier(entity, attribute, modifierId)
+```
+
+### 调试和监控
+
+#### 命令支持
+```
+/stat [entity] - 查看实体的所有属性
+```
+
+#### 调试信息
+- **计算过程追踪**：详细的计算步骤日志
+- **修改器列表**：显示所有应用的修改器
+- **值范围检查**：警告超出推荐范围的值
+
+### 国际化支持
+
+#### 本地化键
+- `statcore.value.infinite` - "∞"
+- `statcore.attribute.unlimited_max` - "该属性无最大值限制，可以无限增长"
+- `statcore.warning.value_beyond_recommended` - 超出推荐范围警告
+
+#### 多语言支持
+- 完整的中文本地化
+- 英文本地化
+- 可扩展的本地化框架
+
+## 使用建议
+
+### 平衡性考虑
+虽然属性可以无限大，但建议：
+- **合理设计**：避免过度膨胀影响游戏体验
+- **渐进增长**：使用指数或对数增长曲线
+- **多样化属性**：平衡不同类型的属性
+
+### 性能考虑
+- **避免极值**：虽然支持无限大，但过大的值可能影响性能
+- **批量操作**：使用批量API处理大量属性变更
+- **缓存策略**：合理利用计算缓存
+
+### 兼容性考虑
+- **原版限制**：了解原版系统的限制
+- **模组兼容**：测试与其他模组的兼容性
+- **版本迁移**：提供版本间的迁移方案
 
 ## 架构组件
 

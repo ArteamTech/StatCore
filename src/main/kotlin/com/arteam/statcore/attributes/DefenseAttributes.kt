@@ -6,8 +6,9 @@ import net.minecraft.world.entity.LivingEntity
 
 /**
  * 防御类型枚举
- * 定义各种防御类型，支持扩展
+ * 定义各种防御类型，支持扩展和继承
  */
+@Suppress("unused")
 enum class DefenseType(
     /**
      * 防御类型的ID
@@ -20,34 +21,39 @@ enum class DefenseType(
     val translationKey: String,
     
     /**
-     * 是否为基础防御类型（会被其他防御类型继承）
+     * 父级防御类型（用于继承关系）
      */
-    val isBase: Boolean = false
+    val parent: DefenseType? = null,
+    
+    /**
+     * 是否为真实防御（真实防御对所有类型伤害都有效）
+     */
+    val isTrueDefense: Boolean = false
 ) {
     /**
      * 物理防御（基础防御类型）
      */
-    PHYSICAL("physical", "defense.statcore.physical", true),
+    PHYSICAL("physical", "defense.statcore.physical"),
     
     /**
-     * 弹射物防御
+     * 弹射物防御（继承物理防御）
      */
-    PROJECTILE("projectile", "defense.statcore.projectile"),
+    PROJECTILE("projectile", "defense.statcore.projectile", parent = PHYSICAL),
     
     /**
-     * 爆炸防御
+     * 爆炸防御（独立防御类型，不继承物理防御）
      */
     EXPLOSION("explosion", "defense.statcore.explosion"),
     
     /**
-     * 火焰防御
+     * 火焰防御（独立防御类型，不继承物理防御）
      */
     FIRE("fire", "defense.statcore.fire"),
     
     /**
-     * 真实防御（防御任何类型的伤害，基础防御类型）
+     * 真实防御（防御任何类型的伤害）
      */
-    TRUE_DEFENSE("true_defense", "defense.statcore.true_defense", true);
+    TRUE_DEFENSE("true_defense", "defense.statcore.true_defense", isTrueDefense = true);
     
     companion object {
         /**
@@ -58,27 +64,38 @@ enum class DefenseType(
         }
         
         /**
-         * 获取所有基础防御类型
+         * 获取指定防御类型的有效防御类型列表
+         * 基于继承关系，弹射物防御 = 弹射物防御 + 物理防御 + 真实防御
+         * 火焰防御 = 火焰防御 + 真实防御（不继承物理防御）
          */
-        fun getBaseTypes(): List<DefenseType> {
-            return DefenseType.entries.filter { it.isBase }
+        fun getEffectiveDefenseTypes(defenseType: DefenseType): List<DefenseType> {
+            val types = mutableSetOf<DefenseType>()
+            
+            // 递归添加当前类型及其所有父类型
+            var current: DefenseType? = defenseType
+            while (current != null) {
+                types.add(current)
+                current = current.parent
+            }
+            
+            // 始终添加真实防御（对所有伤害类型都有效）
+            types.add(TRUE_DEFENSE)
+            
+            return types.toList()
         }
         
         /**
-         * 获取指定防御类型的有效防御类型列表
-         * 例如弹射物防御 = 弹射物防御 + 物理防御 + 真实防御
+         * 获取所有独立的防御类型（没有父类型的）
          */
-        fun getEffectiveDefenseTypes(defenseType: DefenseType): List<DefenseType> {
-            val types = mutableListOf<DefenseType>()
-            
-            // 添加自身
-            types.add(defenseType)
-            
-            // 添加基础防御类型
-            types.addAll(getBaseTypes())
-            
-            // 去重
-            return types.distinct()
+        fun getRootDefenseTypes(): List<DefenseType> {
+            return DefenseType.entries.filter { it.parent == null && !it.isTrueDefense }
+        }
+        
+        /**
+         * 获取所有派生的防御类型（有父类型的）
+         */
+        fun getDerivedDefenseTypes(): List<DefenseType> {
+            return DefenseType.entries.filter { it.parent != null }
         }
     }
 }
@@ -90,52 +107,57 @@ object DefenseAttributes {
     
     /**
      * 物理防御
+     * 无最大值限制，可以无限增长
      */
     val PHYSICAL_DEFENSE = BaseStatAttribute.universal(
         id = AttributeUtils.createStatCoreLocation("physical_defense"),
         defaultValue = 0.0,
         minValue = 0.0,
-        maxValue = 1000.0
+        maxValue = Double.POSITIVE_INFINITY  // 无最大值限制
     )
     
     /**
      * 弹射物防御
+     * 无最大值限制，可以无限增长
      */
     val PROJECTILE_DEFENSE = BaseStatAttribute.universal(
         id = AttributeUtils.createStatCoreLocation("projectile_defense"),
         defaultValue = 0.0,
         minValue = 0.0,
-        maxValue = 1000.0
+        maxValue = Double.POSITIVE_INFINITY  // 无最大值限制
     )
     
     /**
      * 爆炸防御
+     * 无最大值限制，可以无限增长
      */
     val EXPLOSION_DEFENSE = BaseStatAttribute.universal(
         id = AttributeUtils.createStatCoreLocation("explosion_defense"),
         defaultValue = 0.0,
         minValue = 0.0,
-        maxValue = 1000.0
+        maxValue = Double.POSITIVE_INFINITY  // 无最大值限制
     )
     
     /**
      * 火焰防御
+     * 无最大值限制，可以无限增长
      */
     val FIRE_DEFENSE = BaseStatAttribute.universal(
         id = AttributeUtils.createStatCoreLocation("fire_defense"),
         defaultValue = 0.0,
         minValue = 0.0,
-        maxValue = 1000.0
+        maxValue = Double.POSITIVE_INFINITY  // 无最大值限制
     )
     
     /**
      * 真实防御
+     * 无最大值限制，可以无限增长
      */
     val TRUE_DEFENSE = BaseStatAttribute.universal(
         id = AttributeUtils.createStatCoreLocation("true_defense"),
         defaultValue = 0.0,
         minValue = 0.0,
-        maxValue = 1000.0
+        maxValue = Double.POSITIVE_INFINITY  // 无最大值限制
     )
     
     /**
@@ -157,6 +179,7 @@ object DefenseAttributes {
     /**
      * 获取所有防御属性
      */
+    @Suppress("unused")
     fun getAllDefenseAttributes() = defenseTypeToAttribute.values.toList()
     
     /**

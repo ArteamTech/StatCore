@@ -1,9 +1,7 @@
 package com.arteam.statcore.core.events
 
-import com.arteam.statcore.core.attributes.AttributeManager
 import com.arteam.statcore.core.sync.AttributeSyncManager
 import net.minecraft.world.entity.LivingEntity
-import net.minecraft.world.entity.player.Player
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.entity.player.PlayerEvent
@@ -12,14 +10,16 @@ import org.slf4j.LoggerFactory
 
 /**
  * 属性更新处理器
- * 处理装备变化、周期性属性更新等
+ * 处理玩家登录初始化、维度切换同步等通用属性更新任务
+ * 装备变化相关的更新由 EquipmentChangeHandler 处理
  */
 @EventBusSubscriber(modid = "statcore")
+@Suppress("unused")
 object AttributeUpdateHandler {
     
     private val LOGGER = LoggerFactory.getLogger("statcore.update")
     private var tickCounter = 0
-    private const val UPDATE_INTERVAL = 100 // 每5秒更新一次（20 ticks/秒 × 5秒）
+    private const val REFRESH_INTERVAL = 600 // 每30秒进行一次属性刷新（20 ticks/秒 × 30秒）
     
     /**
      * 玩家登录时初始化属性
@@ -49,22 +49,24 @@ object AttributeUpdateHandler {
     }
     
     /**
-     * 服务器tick事件，周期性更新属性
+     * 服务器tick事件，周期性刷新属性
+     * 主要用于处理那些无法通过事件监听、且不需要高频更新的属性
      */
     @SubscribeEvent
     fun onServerTick(event: ServerTickEvent.Pre) {
         tickCounter++
         
-        if (tickCounter >= UPDATE_INTERVAL) {
+        if (tickCounter >= REFRESH_INTERVAL) {
             tickCounter = 0
-            performPeriodicUpdate(event)
+            performPeriodicRefresh(event)
         }
     }
     
     /**
-     * 执行周期性属性更新
+     * 执行周期性属性刷新
+     * 对所有在线玩家进行一次全面的属性同步，确保不遗漏任何变化
      */
-    private fun performPeriodicUpdate(event: ServerTickEvent.Pre) {
+    private fun performPeriodicRefresh(event: ServerTickEvent.Pre) {
         val server = event.server
         
         // 获取所有在线玩家
@@ -72,53 +74,18 @@ object AttributeUpdateHandler {
         if (players.isEmpty()) return
         
         try {
-            // 批量更新玩家属性
-            val entitiesToUpdate = mutableListOf<LivingEntity>()
+            val refreshedPlayers = mutableListOf<LivingEntity>()
             
             for (player in players) {
-                // 检查玩家装备是否发生变化
-                if (hasEquipmentChanged(player)) {
-                    entitiesToUpdate.add(player)
-                    updatePlayerEquipmentAttributes(player)
-                }
+                // 对每个玩家进行全面的属性刷新
+                AttributeSyncManager.syncEntityAttributes(player)
+                refreshedPlayers.add(player)
             }
             
-            // 批量同步属性
-            if (entitiesToUpdate.isNotEmpty()) {
-                AttributeSyncManager.syncMultipleEntities(entitiesToUpdate)
-                LOGGER.debug("周期性更新了 {} 个实体的属性", entitiesToUpdate.size)
-            }
+            LOGGER.debug("周期性刷新了 {} 个玩家的属性", refreshedPlayers.size)
             
         } catch (e: Exception) {
-            LOGGER.error("周期性属性更新时发生错误: {}", e.message, e)
+            LOGGER.error("周期性属性刷新时发生错误: {}", e.message, e)
         }
-    }
-    
-    /**
-     * 检查玩家装备是否发生变化
-     * 这里简化处理，实际可以缓存装备hash值进行比较
-     */
-    private fun hasEquipmentChanged(player: Player): Boolean {
-        // 简化版本：检查是否有护甲装备
-        return player.armorValue > 0
-    }
-    
-    /**
-     * 更新玩家装备相关的属性
-     */
-    private fun updatePlayerEquipmentAttributes(player: Player) {
-        // 重新计算护甲相关的物理防御
-        val currentArmor = player.armorValue.toDouble()
-        val physicalDefense = currentArmor * 5.0
-        
-        // 更新物理防御属性
-        AttributeManager.setAttributeBaseValue(
-            player, 
-            com.arteam.statcore.attributes.CoreAttributes.PHYSICAL_DEFENSE, 
-            physicalDefense
-        )
-        
-        LOGGER.debug("更新玩家 {} 的装备属性，护甲={}, 物理防御={}", 
-            player.name.string, currentArmor, physicalDefense)
     }
 } 

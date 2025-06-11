@@ -85,8 +85,11 @@ object AttributeDebugTool {
                 else -> ChatFormatting.GRAY
             }
             
-            report.add(Component.literal(String.format("%s防御: %.1f (减免 %.1f%%)", 
-                getDefenseTypeName(defenseType), defenseValue, percentage)).withStyle(color))
+            val defenseNameComponent = getDefenseTypeName(defenseType)
+            report.add(Component.literal("")
+                .append(defenseNameComponent)
+                .append(String.format("防御: %.1f (减免 %.1f%%)", defenseValue, percentage))
+                .withStyle(color))
         }
         
         // 原版护甲对比
@@ -124,6 +127,7 @@ object AttributeDebugTool {
      * @param defenseType 防御类型
      * @return 格式化的测试结果
      */
+    @Suppress("unused")
     fun simulateDamage(entity: LivingEntity, damageAmount: Float, defenseType: DefenseType): List<Component> {
         val result = mutableListOf<Component>()
         
@@ -143,7 +147,8 @@ object AttributeDebugTool {
         val damageReduction = DefenseAttributes.calculateDamageReduction(entity, defenseType)
         val finalDamage = scaledDamage * (1.0f - damageReduction.toFloat())
         
-        result.add(Component.literal(String.format("防御类型: %s", getDefenseTypeName(defenseType)))
+        result.add(Component.literal("防御类型: ")
+            .append(getDefenseTypeName(defenseType))
             .withStyle(ChatFormatting.BLUE))
         result.add(Component.literal(String.format("伤害减免: %.1f%%", damageReduction * 100))
             .withStyle(ChatFormatting.BLUE))
@@ -164,16 +169,10 @@ object AttributeDebugTool {
     }
     
     /**
-     * 获取防御类型的中文名称
+     * 获取防御类型的本地化名称组件
      */
-    private fun getDefenseTypeName(defenseType: DefenseType): String {
-        return when (defenseType) {
-            DefenseType.PHYSICAL -> "物理"
-            DefenseType.PROJECTILE -> "弹射物"
-            DefenseType.EXPLOSION -> "爆炸"
-            DefenseType.FIRE -> "火焰"
-            DefenseType.TRUE_DEFENSE -> "真实"
-        }
+    private fun getDefenseTypeName(defenseType: DefenseType): Component {
+        return Component.translatable(defenseType.translationKey)
     }
     
     /**

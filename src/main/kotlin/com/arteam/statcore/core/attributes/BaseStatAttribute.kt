@@ -3,6 +3,7 @@ package com.arteam.statcore.core.attributes
 import com.arteam.statcore.api.attributes.AttributeModifier
 import com.arteam.statcore.api.attributes.AttributeOperation
 import com.arteam.statcore.api.attributes.StatAttribute
+import com.arteam.statcore.api.attributes.EntityCategory
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.animal.Animal
@@ -11,21 +12,10 @@ import net.minecraft.world.entity.npc.Npc
 import net.minecraft.world.entity.player.Player
 
 /**
- * 实体类型枚举
- * 用于更精确地控制属性的适用范围
- */
-enum class EntityCategory {
-    PLAYER,       // 玩家
-    MONSTER,      // 怪物
-    ANIMAL,       // 动物
-    NPC,          // NPC
-    OTHER         // 其他生物
-}
-
-/**
  * 基础属性实现
  * 提供默认的属性计算逻辑和实体类型检查
  */
+@Suppress("unused")
 open class BaseStatAttribute(
     override val id: ResourceLocation,
     override val defaultValue: Double = 0.0,
@@ -37,6 +27,10 @@ open class BaseStatAttribute(
      */
     val allowedEntityTypes: Set<EntityCategory> = setOf(EntityCategory.PLAYER, EntityCategory.MONSTER, EntityCategory.ANIMAL, EntityCategory.NPC, EntityCategory.OTHER)
 ) : StatAttribute {
+    
+    override fun getApplicableCategories(): Set<EntityCategory> {
+        return allowedEntityTypes
+    }
     
     override fun isApplicableTo(entity: LivingEntity): Boolean {
         val entityCategory = getEntityCategory(entity)
