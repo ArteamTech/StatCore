@@ -10,12 +10,10 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.effect.MobEffects
 import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.ai.attributes.Attributes
-import net.minecraft.world.entity.player.Player
 import net.neoforged.bus.api.EventPriority
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent
-import net.neoforged.neoforge.event.tick.PlayerTickEvent
 import net.neoforged.neoforge.event.tick.EntityTickEvent
 import org.slf4j.LoggerFactory
 
@@ -32,6 +30,9 @@ object PotionEffectHandler {
     // 修改器来源标识
     private val RESISTANCE_SOURCE = ResourceLocation.fromNamespaceAndPath("statcore", "resistance_potion")
     private val HEALTH_BOOST_SOURCE = ResourceLocation.fromNamespaceAndPath("statcore", "health_boost_potion")
+    
+    // 原版生命提升效果的修改器来源标识（这是原版使用的）
+    private val VANILLA_HEALTH_BOOST_ID = ResourceLocation.fromNamespaceAndPath("minecraft", "effect.health_boost")
     
     // 效果常量
     private const val RESISTANCE_DEFENSE_PER_LEVEL = 20.0  // 每级抗性提升+20真实防御
@@ -56,7 +57,7 @@ object PotionEffectHandler {
             }
             MobEffects.HEALTH_BOOST -> {
                 // 立即拦截并阻止原版生命提升效果
-                preemptivelyBlockVanillaHealthBoost(entity)
+                removeVanillaHealthBoostModifiers(entity)
                 
                 // 应用我们的生命提升效果
                 applyHealthBoostEffect(entity, amplifier + 1)
@@ -155,6 +156,9 @@ object PotionEffectHandler {
         // 先移除现有的生命提升修改器
         removeHealthBoostEffect(entity)
         
+        // 移除原版生命提升修改器
+        removeVanillaHealthBoostModifiers(entity)
+        
         // 计算额外生命值
         val healthBoost = HEALTH_BOOST_PER_LEVEL * level
         
@@ -206,91 +210,51 @@ object PotionEffectHandler {
     }
 
     /**
-     * 玩家Tick事件 - 拦截原版生命提升对MAX_HEALTH的修改
+     * 移除原版生命提升修改器（使用精确的ResourceLocation标识）
+     * 这是最精确的方法，直接通过原版使用的固定ID来识别修改器
      */
-    @SubscribeEvent(priority = EventPriority.LOW)
-    fun onPlayerTick(event: PlayerTickEvent.Post) {
-        val player = event.entity
-        if (player.level().isClientSide) return
-        
-        // 每10 ticks检查一次，避免过于频繁
-        if (player.tickCount % 10 == 0) {
-            interceptVanillaHealthBoost(player)
-        }
-    }
-    
-    /**
-     * 抢先阻止原版生命提升效果
-     * 在原版效果应用前就移除其修改器
-     */
-    private fun preemptivelyBlockVanillaHealthBoost(entity: LivingEntity) {
+    private fun removeVanillaHealthBoostModifiers(entity: LivingEntity) {
         try {
-            // 立即检查并移除任何原版生命提升修改器
             val vanillaHealthInstance = entity.attributes.getInstance(Attributes.MAX_HEALTH)
             if (vanillaHealthInstance != null) {
-                // 查找并移除所有可能的原版生命提升修改器
-                val modifiersToRemove = vanillaHealthInstance.modifiers.filter { modifier ->
-                    // 原版生命提升修改器通常是4的倍数（每级+4血量）
-                    modifier.amount > 0 && (modifier.amount % 4.0 == 0.0)
-                }
+                // 通过精确的ResourceLocation来移除原版生命提升修改器
+                // 原版生命提升效果使用的是 "minecraft:effect.health_boost" 作为修改器ID
+                val modifierRemoved = vanillaHealthInstance.removeModifier(VANILLA_HEALTH_BOOST_ID)
                 
-                modifiersToRemove.forEach { modifier ->
-                    vanillaHealthInstance.removeModifier(modifier.id)
-                    LOGGER.debug("抢先移除原版生命提升修改器: {} ({})", modifier.id, modifier.amount)
+                if (modifierRemoved) {
+                    LOGGER.debug("精确移除原版生命提升修改器: {}", VANILLA_HEALTH_BOOST_ID)
+                } else {
+                    // 如果通过ID移除失败，尝试通过特征移除（作为备用方案）
+                    val modifiersToRemove = vanillaHealthInstance.modifiers.filter { modifier ->
+                        // 原版生命提升修改器的数学特征：正数且为4的倍数（每级+4血量）
+                        modifier.amount > 0 && (modifier.amount % 4.0 == 0.0)
+                    }
+                    
+                    modifiersToRemove.forEach { modifier ->
+                        vanillaHealthInstance.removeModifier(modifier.id)
+                        LOGGER.debug("通过特征移除原版生命提升修改器: {} ({})", modifier.id, modifier.amount)
+                    }
                 }
             }
         } catch (e: Exception) {
-            LOGGER.error("抢先阻止原版生命提升时出错", e)
+            LOGGER.error("移除原版生命提升修改器时出错", e)
         }
     }
-    
+
     /**
-     * 生物Tick事件 - 更频繁地拦截所有生物的原版生命提升对MAX_HEALTH的修改
+     * 生物Tick事件 - 持续监控并移除原版生命提升修改器
      */
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     fun onEntityTick(event: EntityTickEvent.Post) {
         val entity = event.entity
         if (entity !is LivingEntity || entity.level().isClientSide) return
         
-        // 更频繁检查（每5 ticks而不是10 ticks）
-        if (entity.tickCount % 5 == 0) {
-            interceptVanillaHealthBoost(entity)
-        }
-    }
-    
-    /**
-     * 拦截原版生命提升效果对MAX_HEALTH的修改
-     */
-    private fun interceptVanillaHealthBoost(player: Player) {
-        interceptVanillaHealthBoost(player as LivingEntity)
-    }
-    
-    /**
-     * 拦截原版生命提升效果对MAX_HEALTH的修改（适用于所有生物）
-     */
-    private fun interceptVanillaHealthBoost(entity: LivingEntity) {
+        // 检查实体是否有生命提升效果
         val healthBoostEffect = entity.getEffect(MobEffects.HEALTH_BOOST)
         if (healthBoostEffect != null) {
-            val level = healthBoostEffect.amplifier + 1
-            
-            // 获取原版最大血量属性实例
-            val vanillaMaxHealthInstance = entity.attributes.getInstance(Attributes.MAX_HEALTH)
-            if (vanillaMaxHealthInstance != null) {
-                // 查找原版生命提升修改器
-                val vanillaBoostModifiers = vanillaMaxHealthInstance.modifiers
-                    .filter { modifier -> 
-                        // 检查修改器来源是否为原版生命提升效果
-                        modifier.amount > 0 && (modifier.amount % 4.0 == 0.0) // 原版每级+4血量
-                    }
-                
-                if (vanillaBoostModifiers.isNotEmpty()) {
-                    // 移除原版生命提升修改器
-                    vanillaBoostModifiers.forEach { modifier ->
-                        vanillaMaxHealthInstance.removeModifier(modifier.id)
-                    }
-                    
-                    LOGGER.debug("拦截并移除了实体 {} 的原版生命提升修改器", entity.uuid)
-                }
+            // 每5 ticks检查一次并移除原版修改器
+            if (entity.tickCount % 5 == 0) {
+                removeVanillaHealthBoostModifiers(entity)
             }
         }
     }
