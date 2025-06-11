@@ -1,0 +1,80 @@
+name: Release Update
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [created]
+
+jobs:
+  update-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@main
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@main
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(grep "plugin-version=" version.txt | cut -d'=' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Get commit history
+        id: commits
+        run: |
+          # 获取上一个标签
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "initial")
+          # 获取从上一个标签到现在的所有提交信息
+          COMMITS=$(git log $PREV_TAG..HEAD --pretty=format:"- %s" --reverse)
+          echo "commits<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Get latest release
+        id: release
+        uses: bruceadams/get-release@main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Update release
+        uses: softprops/action-gh-release@master
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: "StatCore v${{ steps.version.outputs.version }}"
+          body: |
+            ## StatCore v${{ steps.version.outputs.version }}
+
+            ### 更新内容
+            ${{ steps.commits.outputs.commits }}
+
+            ### 构建信息
+            - 版本: ${{ steps.version.outputs.version }}
+            - 构建时间: $(date +'%Y-%m-%d %H:%M:%S')
+            - 提交哈希: $(git rev-parse --short HEAD)
+
+            ### 下载
+            请从发布页面下载最新的插件文件。
+          draft: false
+          prerelease: false
+          files: |
+            build/libs/*.jar
+            !build/libs/*-sources.jar
+            !build/libs/*-javadoc.jar
