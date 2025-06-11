@@ -1,0 +1,58 @@
+name: Cleanup Tags
+
+on:
+  schedule:
+    # 每天凌晨 2 点运行
+    - cron: "0 2 * * *"
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+
+      - name: Get all tags
+        id: tags
+        run: |
+          # 获取所有本地标签
+          git fetch --tags
+          TAGS=$(git tag -l)
+          echo "tags<<EOF" >> $GITHUB_OUTPUT
+          echo "$TAGS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Get all releases
+        id: releases
+        run: |
+          # 获取所有发布版本
+          RELEASES=$(curl -s \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" | \
+            grep -o '"tag_name": "[^"]*' | cut -d'"' -f4)
+
+          echo "releases<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Cleanup orphaned tags
+        run: |
+          # 读取标签和发布版本
+          TAGS=$(echo "${{ steps.tags.outputs.tags }}")
+          RELEASES=$(echo "${{ steps.releases.outputs.releases }}")
+
+          # 遍历所有标签
+          for TAG in $TAGS; do
+            # 检查标签是否存在于发布版本中
+            if ! echo "$RELEASES" | grep -q "^$TAG$"; then
+              echo "Deleting orphaned tag: $TAG"
+              # 删除本地标签
+              git tag -d "$TAG"
+              # 删除远程标签
+              git push origin ":refs/tags/$TAG"
+            fi
+          done
