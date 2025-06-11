@@ -68,5 +68,26 @@
   "statcore.potion.resistance.name": "抗性提升",
   "statcore.potion.resistance.desc": "每级+%s真实防御",
   "statcore.potion.health_boost.name": "生命提升",
-  "statcore.potion.health_boost.desc": "每级+%s血量"
+  "statcore.potion.health_boost.desc": "每级+%s血量",
+  
+  "screen.statcore.attributes": "属性界面",
+  "gui.statcore.attributes.title": "角色属性",
+  "gui.statcore.health": "血量",
+  "gui.statcore.defense": "防御",
+  "gui.statcore.inventory": "背包",
+  "gui.statcore.attributes": "属性",
+  "gui.statcore.back_to_inventory": "返回背包",
+  "gui.statcore.inventory.tooltip": "背包界面",
+  "gui.statcore.attributes.tooltip": "查看角色属性",
+  
+  "gui.statcore.defense.tooltip.title": "§6防御属性详情",
+  "gui.statcore.defense.physical": "物理防御",
+  "gui.statcore.defense.projectile": "弹射物防御", 
+  "gui.statcore.defense.explosion": "爆炸防御",
+  "gui.statcore.defense.fire": "火焰防御",
+  "gui.statcore.defense.true": "真实防御",
+  
+  "gui.statcore.tooltip.base_value": "基础值",
+  "gui.statcore.tooltip.modifiers": "修改器",
+  "gui.statcore.tooltip.more_modifiers": "还有 %d 个修改器..."
 }
