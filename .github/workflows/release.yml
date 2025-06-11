@@ -59,8 +59,16 @@ jobs:
       - name: Get latest release info
         id: release_info
         run: |
-          # 获取最新的发布版本信息
-          LATEST_RELEASE=$(gh api repos/${{ github.repository }}/releases/latest 2>/dev/null || echo "{}")
+          # 使用 curl 调用 GitHub API 获取最新发布信息
+          LATEST_RELEASE=$(curl -s \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/latest" || echo "{}")
+
+          # 提取发布标签
+          LATEST_TAG=$(echo "$LATEST_RELEASE" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4 || echo "")
+
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
           echo "release_info<<EOF" >> $GITHUB_OUTPUT
           echo "$LATEST_RELEASE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -80,6 +88,7 @@ jobs:
             - 版本: ${{ steps.version.outputs.version }}
             - 构建时间: $(date +'%Y-%m-%d %H:%M:%S')
             - 提交哈希: $(git rev-parse --short HEAD)
+            - 上一个版本: ${{ steps.release_info.outputs.latest_tag }}
 
             ### 下载
             请从发布页面下载最新的插件文件。
