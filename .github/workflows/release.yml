@@ -1,9 +1,6 @@
 name: Release Update
 
 on:
-  push:
-    branches:
-      - main
   release:
     types: [created]
 
@@ -48,11 +45,14 @@ jobs:
           echo "$COMMITS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Get latest release
-        id: release
-        uses: bruceadams/get-release@main
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      - name: Get latest release info
+        id: release_info
+        run: |
+          # 获取最新的发布版本信息
+          LATEST_RELEASE=$(gh api repos/${{ github.repository }}/releases/latest 2>/dev/null || echo "{}")
+          echo "release_info<<EOF" >> $GITHUB_OUTPUT
+          echo "$LATEST_RELEASE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Update release
         uses: softprops/action-gh-release@master
