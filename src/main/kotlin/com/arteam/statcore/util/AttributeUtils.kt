@@ -12,6 +12,7 @@ import java.util.*
  * 属性工具类
  * 提供常用的属性操作辅助方法
  */
+@Suppress("unused")
 object AttributeUtils {
     
     /**
@@ -179,5 +180,78 @@ object AttributeUtils {
                id.path.isNotBlank() &&
                id.namespace.matches(Regex("[a-z0-9_.-]+")) &&
                id.path.matches(Regex("[a-z0-9_./]+"))
+    }
+    
+    /**
+     * 检查属性是否有最大值限制
+     * @param attribute 属性定义
+     * @return 如果有最大值限制返回true，无限制返回false
+     */
+    fun hasMaxValueLimit(attribute: StatAttribute): Boolean {
+        return attribute.hasMaxValueLimit()
+    }
+    
+    /**
+     * 检查属性是否有最小值限制
+     * @param attribute 属性定义
+     * @return 如果有最小值限制返回true，无限制返回false
+     */
+    fun hasMinValueLimit(attribute: StatAttribute): Boolean {
+        return attribute.hasMinValueLimit()
+    }
+    
+    /**
+     * 格式化属性值为显示字符串（支持无限大值）
+     * @param value 属性值
+     * @param precision 小数精度（默认2位）
+     * @return 格式化后的字符串
+     */
+    fun formatAttributeValueSafe(value: Double, precision: Int = 2): String {
+        return when {
+            value.isInfinite() && value > 0 -> "∞"
+            value.isInfinite() && value < 0 -> "-∞"
+            value.isNaN() -> "NaN"
+            value == value.toLong().toDouble() -> value.toLong().toString()
+            else -> String.format("%.${precision}f", value)
+        }
+    }
+    
+    /**
+     * 检查属性值是否安全（不是无限或NaN）
+     * @param value 属性值
+     * @return 如果值是有限数字返回true
+     */
+    fun isValueSafe(value: Double): Boolean {
+        return value.isFinite() && !value.isNaN()
+    }
+    
+    /**
+     * 获取属性的显示名称
+     * @param attribute 属性定义
+     * @return 属性的本地化键或友好名称
+     */
+    fun getAttributeDisplayName(attribute: StatAttribute): String {
+        // 可以在这里添加翻译逻辑
+        return attribute.getTranslationKey()
+    }
+    
+    /**
+     * 检查属性值是否超出推荐范围
+     * 虽然属性可以无限大，但过大的值可能影响游戏体验
+     * @param value 属性值
+     * @param recommendedMax 推荐的最大值（默认为StatCore定义的推荐值）
+     * @return 如果超出推荐范围返回true
+     */
+    fun isValueBeyondRecommended(value: Double, recommendedMax: Double = com.arteam.statcore.StatCore.RECOMMENDED_ATTRIBUTE_MAX_VALUE): Boolean {
+        return value > recommendedMax
+    }
+    
+    /**
+     * 创建无最大值限制的安全值
+     * 在某些情况下，即使属性支持无限大，也需要一个"安全"的大值作为替代
+     * @return 一个很大但有限的安全值
+     */
+    fun createSafeMaxValue(): Double {
+        return com.arteam.statcore.StatCore.SAFE_INFINITY_VALUE  // 100万，对大多数游戏场景都足够大
     }
 } 

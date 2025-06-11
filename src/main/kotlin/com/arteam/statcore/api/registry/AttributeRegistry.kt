@@ -8,6 +8,7 @@ import net.minecraft.world.entity.LivingEntity
  * 属性注册接口
  * 管理所有属性的注册和查询
  */
+@Suppress("unused")
 interface AttributeRegistry {
     /**
      * 注册一个新属性

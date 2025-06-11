@@ -22,6 +22,10 @@ object HealthDisplayManager {
     private const val MAX_HEARTS_DISPLAY = 10 // 最多显示10颗心
     private const val VANILLA_MAX_HEALTH = 20.0 // 原版满血血量
     
+    // 用于恢复原始值的缓存
+    private var originalHealth: Float? = null
+    private var originalMaxHealth: Double? = null
+    
     /**
      * 拦截血量渲染事件，修改显示逻辑
      */
@@ -32,10 +36,23 @@ object HealthDisplayManager {
         
         // 只处理血量层的渲染
         if (event.name.toString() == "minecraft:player_health") {
-            if (handleHealthDisplay(player)) {
-                // 如果我们处理了血量显示，取消原版渲染
-                event.isCanceled = true
-            }
+            // 修改血量显示值，让原版渲染系统使用我们的值
+            handleHealthDisplay(player)
+        }
+    }
+    
+    /**
+     * 渲染后恢复原始值
+     */
+    @SubscribeEvent
+    fun onRenderGuiLayerPost(event: RenderGuiLayerEvent.Post) {
+        val minecraft = Minecraft.getInstance()
+        val player = minecraft.player ?: return
+        
+        // 只处理血量层的渲染
+        if (event.name.toString() == "minecraft:player_health") {
+            // 恢复原始血量值
+            restoreOriginalValues(player)
         }
     }
     
@@ -44,13 +61,15 @@ object HealthDisplayManager {
      * @param player 玩家
      * @return 是否成功处理了血量显示
      */
-    private fun handleHealthDisplay(player: Player): Boolean {
+    private fun handleHealthDisplay(player: Player){
         try {
+            // 保存原始值
+            originalHealth = player.health
+            originalMaxHealth = player.attributes.getInstance(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH)?.baseValue
+            
             // 获取我们系统的血量
             val currentHealth = AttributeManager.getAttributeValue(player, CoreAttributes.CURRENT_HEALTH)
             val maxHealth = AttributeManager.getAttributeValue(player, CoreAttributes.MAX_HEALTH)
-            
-            if (maxHealth <= 0) return false
             
             // 计算血量比例
             val healthRatio = (currentHealth / maxHealth).coerceIn(0.0, 1.0)
@@ -64,14 +83,29 @@ object HealthDisplayManager {
             player.attributes.getInstance(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH)?.let { instance ->
                 instance.baseValue = displayMaxHealth.toDouble()
             }
-            
-            LOGGER.debug("血量显示: 实际={}/{}, 显示={}/{}", 
-                currentHealth, maxHealth, displayHealth, displayMaxHealth)
-            
-            return false // 让原版继续渲染，但使用我们修改后的值
         } catch (e: Exception) {
             LOGGER.error("处理血量显示时发生错误: {}", e.message, e)
-            return false
+        }
+    }
+    
+    /**
+     * 恢复原始血量值
+     */
+    private fun restoreOriginalValues(player: Player) {
+        try {
+            originalHealth?.let { health ->
+                player.health = health
+            }
+            originalMaxHealth?.let { maxHealth ->
+                player.attributes.getInstance(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH)?.let { instance ->
+                    instance.baseValue = maxHealth
+                }
+            }
+            // 清除缓存
+            originalHealth = null
+            originalMaxHealth = null
+        } catch (e: Exception) {
+            LOGGER.error("恢复原始血量值时发生错误: {}", e.message, e)
         }
     }
     

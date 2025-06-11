@@ -1,5 +1,6 @@
 package com.arteam.statcore.core.events
 
+import com.arteam.statcore.StatCore
 import com.arteam.statcore.attributes.CoreAttributes
 import com.arteam.statcore.core.attributes.AttributeManager
 import com.arteam.statcore.core.sync.AttributeSyncManager
@@ -12,12 +13,14 @@ import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.entity.living.LivingEquipmentChangeEvent
 import net.neoforged.neoforge.event.tick.PlayerTickEvent
 import org.slf4j.LoggerFactory
+import kotlin.math.abs
 
 /**
  * 装备变化处理器
  * 监听装备变化并实时更新防御值
  */
 @EventBusSubscriber(modid = "statcore")
+@Suppress("unused")
 object EquipmentChangeHandler {
     
     private val LOGGER = LoggerFactory.getLogger("statcore.equipment")
@@ -62,22 +65,23 @@ object EquipmentChangeHandler {
             // 获取当前护甲值
             val currentArmor = entity.armorValue.toDouble()
             
-            // 计算物理防御值（护甲点数 × 5）
-            val physicalDefense = currentArmor * 5.0
+            // 计算物理防御值（护甲点数 × 缩放因子）
+            val physicalDefense = currentArmor * StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
             
             // 获取当前物理防御值
             val currentPhysicalDefense = AttributeManager.getAttributeValue(entity, CoreAttributes.PHYSICAL_DEFENSE)
             
             // 只在防御值发生变化时更新（降低阈值提高精度）
-            if (Math.abs(currentPhysicalDefense - physicalDefense) > 0.01) {
+            if (abs(currentPhysicalDefense - physicalDefense) > 0.01) {
                 // 更新物理防御值
                 AttributeManager.setAttributeBaseValue(entity, CoreAttributes.PHYSICAL_DEFENSE, physicalDefense)
                 
                 // 同步属性到原版系统
                 AttributeSyncManager.syncEntityAttributes(entity)
                 
-                LOGGER.debug("实体 {} 防御值已更新: 护甲={} -> 物理防御={} (原值={})", 
-                    entity.uuid, currentArmor, physicalDefense, currentPhysicalDefense)
+                val entityType = if (entity is Player) "玩家" else entity.type.description.string
+                LOGGER.debug("实体 {} ({}) 防御值已更新: 护甲={} -> 物理防御={} (原值={})", 
+                    entityType, entity.uuid, currentArmor, physicalDefense, currentPhysicalDefense)
             }
         } catch (e: Exception) {
             LOGGER.error("更新实体防御属性时发生错误: {}", e.message, e)

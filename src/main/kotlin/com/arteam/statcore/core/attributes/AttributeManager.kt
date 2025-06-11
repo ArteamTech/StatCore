@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 属性管理器
  * 管理全局的属性系统，包括属性注册和实体属性映射
  */
+@Suppress("unused")
 object AttributeManager {
     
     /**
@@ -99,6 +100,7 @@ object AttributeManager {
     
     /**
      * 设置实体某个属性的当前值（包括修改器）
+     * 通过反向计算调整基础值来达到目标值
      * @param entity 目标实体
      * @param attribute 属性定义
      * @param value 要设置的值
@@ -108,14 +110,32 @@ object AttributeManager {
             return
         }
         
-        // 获取属性实例并设置基础值
+        // 获取属性实例并设置目标值
         val attributeMap = getAttributeMap(entity)
         val instance = attributeMap.getOrCreateInstance(attribute)
         
-        // 设置基础值来达到目标值
-        // 注意：这个方法直接设置基础值，忽略修改器
-        // 如果需要考虑修改器，应该使用更复杂的逻辑
-        instance.baseValue = value
+        // 使用智能的setValue方法，会考虑修改器
+        instance.setValue(value)
+    }
+    
+    /**
+     * 强制设置实体某个属性的值（通过基础值）
+     * 忽略所有修改器，直接通过调整基础值来强制设定属性的最终值
+     * @param entity 目标实体
+     * @param attribute 属性定义
+     * @param value 要强制设置的值
+     */
+    fun forceSetAttributeValueByBase(entity: LivingEntity, attribute: StatAttribute, value: Double) {
+        if (!attribute.isApplicableTo(entity)) {
+            return
+        }
+        
+        // 获取属性实例并强制设置基础值
+        val attributeMap = getAttributeMap(entity)
+        val instance = attributeMap.getOrCreateInstance(attribute)
+        
+        // 使用强制设置方法，忽略修改器
+        instance.forceSetValueByBase(value)
     }
     
     /**

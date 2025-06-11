@@ -1,5 +1,6 @@
 package com.arteam.statcore.commands
 
+import com.arteam.statcore.attributes.CoreAttributes
 import com.arteam.statcore.core.attributes.AttributeManager
 import com.arteam.statcore.core.sync.ImmediateSyncManager
 import com.arteam.statcore.debug.AttributeDebugTool
@@ -65,6 +66,17 @@ object StatCommand {
                                 .executes { context ->
                                     // /stat sync <target> - 强制同步指定实体的属性
                                     forceSyncTargetAttributes(context)
+                                }
+                        )
+                )
+                .then(
+                    Commands.literal("test")
+                        .requires { source -> source.hasPermission(2) } // 需要管理员权限
+                        .then(
+                            Commands.argument("target", EntityArgument.entity())
+                                .executes { context ->
+                                    // /stat test <target> - 显示指定实体的详细测试信息
+                                    showTestInfo(context)
                                 }
                         )
                 )
@@ -247,7 +259,7 @@ object StatCommand {
         }
         
         // 如果是玩家，添加血量显示信息
-        if (entity is net.minecraft.world.entity.player.Player) {
+        if (entity is Player) {
             val healthDisplayInfo = HealthDisplayManager.getHealthDisplayInfo(entity)
             source.sendSuccess({ Component.literal("血量显示: $healthDisplayInfo")
                 .withStyle(net.minecraft.ChatFormatting.AQUA) }, false)
@@ -313,6 +325,110 @@ object StatCommand {
             )
             return 0
         }
+    }
+    
+    /**
+     * 显示实体的测试信息
+     */
+    private fun showTestInfo(context: CommandContext<CommandSourceStack>): Int {
+        val source = context.source
+        val target = EntityArgument.getEntity(context, "target")
+        
+        if (target !is LivingEntity) {
+            source.sendFailure(Component.translatable("command.statcore.stat.target_not_living"))
+            return 0
+        }
+        
+        val entityName = if (target is Player) {
+            target.scoreboardName
+        } else {
+            target.displayName?.string ?: target.type.description.string
+        }
+        
+        // 获取血量信息
+        val vanillaCurrentHealth = target.health.toDouble()
+        val vanillaMaxHealth = target.maxHealth.toDouble()
+        val statCoreCurrentHealth = AttributeManager.getAttributeValue(target, CoreAttributes.CURRENT_HEALTH)
+        val statCoreMaxHealth = AttributeManager.getAttributeValue(target, CoreAttributes.MAX_HEALTH)
+        
+        // 获取防御信息
+        val vanillaArmor = target.armorValue.toDouble()
+        val statCoreDefense = AttributeManager.getAttributeValue(target, CoreAttributes.PHYSICAL_DEFENSE)
+        
+        source.sendSuccess({
+            Component.literal("=== 实体测试信息: $entityName ===")
+                .withStyle(net.minecraft.ChatFormatting.GOLD, net.minecraft.ChatFormatting.BOLD)
+        }, false)
+        
+        source.sendSuccess({
+            Component.literal("实体类型: ${target.type.description.string}")
+                .withStyle(net.minecraft.ChatFormatting.GRAY)
+        }, false)
+        
+        source.sendSuccess({
+            Component.literal("UUID: ${target.uuid}")
+                .withStyle(net.minecraft.ChatFormatting.GRAY)
+        }, false)
+        
+        // 血量对比
+        source.sendSuccess({
+            Component.literal("--- 血量对比 ---")
+                .withStyle(net.minecraft.ChatFormatting.RED)
+        }, false)
+        
+        source.sendSuccess({
+            Component.literal(String.format("原版血量: %.1f / %.1f", vanillaCurrentHealth, vanillaMaxHealth))
+                .withStyle(net.minecraft.ChatFormatting.WHITE)
+        }, false)
+        
+        source.sendSuccess({
+            Component.literal(String.format("StatCore血量: %.1f / %.1f", statCoreCurrentHealth, statCoreMaxHealth))
+                .withStyle(net.minecraft.ChatFormatting.AQUA)
+        }, false)
+        
+        // 缩放比例检查
+        val expectedMaxHealth = if (target is Player) {
+            com.arteam.statcore.StatCore.PLAYER_DEFAULT_MAX_HEALTH
+        } else {
+            vanillaMaxHealth * com.arteam.statcore.StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
+        }
+        
+        val isCorrectlyScaled = kotlin.math.abs(statCoreMaxHealth - expectedMaxHealth) < 0.1
+        val scaleStatus = if (isCorrectlyScaled) "✓ 正确" else "✗ 错误"
+        val scaleColor = if (isCorrectlyScaled) net.minecraft.ChatFormatting.GREEN else net.minecraft.ChatFormatting.RED
+        
+        source.sendSuccess({
+            Component.literal(String.format("预期最大血量: %.1f (%s)", expectedMaxHealth, scaleStatus))
+                .withStyle(scaleColor)
+        }, false)
+        
+        // 防御对比
+        source.sendSuccess({
+            Component.literal("--- 防御对比 ---")
+                .withStyle(net.minecraft.ChatFormatting.BLUE)
+        }, false)
+        
+        source.sendSuccess({
+            Component.literal(String.format("原版护甲: %.1f", vanillaArmor))
+                .withStyle(net.minecraft.ChatFormatting.WHITE)
+        }, false)
+        
+        source.sendSuccess({
+            Component.literal(String.format("StatCore物理防御: %.1f", statCoreDefense))
+                .withStyle(net.minecraft.ChatFormatting.AQUA)
+        }, false)
+        
+        val expectedDefense = vanillaArmor * com.arteam.statcore.StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
+        val isDefenseCorrect = kotlin.math.abs(statCoreDefense - expectedDefense) < 0.1
+        val defenseStatus = if (isDefenseCorrect) "✓ 正确" else "✗ 错误"
+        val defenseColor = if (isDefenseCorrect) net.minecraft.ChatFormatting.GREEN else net.minecraft.ChatFormatting.RED
+        
+        source.sendSuccess({
+            Component.literal(String.format("预期物理防御: %.1f (%s)", expectedDefense, defenseStatus))
+                .withStyle(defenseColor)
+        }, false)
+        
+        return 1
     }
     
     /**

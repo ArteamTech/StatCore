@@ -15,10 +15,41 @@ import org.slf4j.LoggerFactory
  * 属性系统重构模组，提供独立的属性计算系统
  */
 @Mod("statcore")
+@Suppress("unused")
 class StatCore {
     
     companion object {
         const val ID = "statcore"
+        
+        /**
+         * 原版系统到StatCore系统的缩放因子
+         * 用于将原版20点生命值扩展到100点，护甲值等比例缩放
+         */
+        const val VANILLA_TO_STATCORE_SCALE_FACTOR = 5.0
+        
+        /**
+         * 玩家默认最大生命值
+         */
+        const val PLAYER_DEFAULT_MAX_HEALTH = 100.0
+        
+        /**
+         * 原版系统支持的最大生命值限制
+         * 防止设置过大的值导致原版系统异常
+         */
+        const val VANILLA_MAX_HEALTH_LIMIT = 1024.0
+        
+        /**
+         * 推荐的属性最大值
+         * 虽然属性可以无限大，但过大的值可能影响游戏体验
+         */
+        const val RECOMMENDED_ATTRIBUTE_MAX_VALUE = 10000.0
+        
+        /**
+         * 安全的无限大替代值
+         * 在某些情况下需要一个"安全"的大值作为无限大的替代
+         */
+        const val SAFE_INFINITY_VALUE = 1000000.0
+        
         private val LOGGER = LoggerFactory.getLogger(ID)
     }
     

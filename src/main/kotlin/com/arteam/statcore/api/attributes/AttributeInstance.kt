@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
  * 属性实例
  * 存储特定实体的属性值和修改器
  */
+@Suppress("unused")
 class AttributeInstance(
     /**
      * 关联的属性定义
@@ -135,6 +136,43 @@ class AttributeInstance(
             isDirty = false
         }
         return cachedValue!!
+    }
+    
+    /**
+     * 设置目标属性值
+     * 通过反向计算调整基础值来达到目标值
+     * 会考虑当前存在的所有修改器
+     * @param targetValue 目标属性值
+     */
+    fun setValue(targetValue: Double) {
+        val modifiers = getModifiers().toList()
+        if (modifiers.isEmpty()) {
+            // 没有修改器，直接设置基础值
+            baseValue = targetValue
+            return
+        }
+        
+        // 计算加法和乘法修改器的总和
+        val additionSum = modifiers
+            .filter { it.operation == AttributeOperation.ADDITION }
+            .sumOf { it.amount }
+        val multiplySum = modifiers
+            .filter { it.operation == AttributeOperation.MULTIPLY }
+            .sumOf { it.amount }
+        
+        // 反向计算基础值：base = (target / (1 + mult)) - add
+        val requiredBaseValue = (targetValue / (1.0 + multiplySum)) - additionSum
+        baseValue = requiredBaseValue
+    }
+    
+    /**
+     * 强制设置属性值（通过基础值）
+     * 忽略所有修改器，直接通过调整基础值来强制设定属性的最终值
+     * 警告：此方法会完全忽略已存在的修改器
+     * @param value 要强制设置的值
+     */
+    fun forceSetValueByBase(value: Double) {
+        baseValue = value
     }
     
     /**
