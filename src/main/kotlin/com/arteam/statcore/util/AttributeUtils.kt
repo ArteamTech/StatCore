@@ -1,0 +1,183 @@
+package com.arteam.statcore.util
+
+import com.arteam.statcore.api.attributes.AttributeModifier
+import com.arteam.statcore.api.attributes.StatAttribute
+import com.arteam.statcore.core.attributes.AttributeManager
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
+import java.util.*
+
+/**
+ * 属性工具类
+ * 提供常用的属性操作辅助方法
+ */
+object AttributeUtils {
+    
+    /**
+     * 检查实体是否拥有指定属性
+     * @param entity 目标实体
+     * @param attribute 属性定义
+     * @return 如果实体拥有该属性返回true
+     */
+    fun hasAttribute(entity: LivingEntity, attribute: StatAttribute): Boolean {
+        return AttributeManager.getAttributeMap(entity).hasInstance(attribute)
+    }
+    
+    /**
+     * 安全地获取实体的属性值
+     * @param entity 目标实体
+     * @param attribute 属性定义
+     * @return 属性值，如果属性不存在或不适用则返回默认值
+     */
+    fun getAttributeValue(entity: LivingEntity, attribute: StatAttribute): Double {
+        return AttributeManager.getAttributeValue(entity, attribute)
+    }
+    
+    /**
+     * 安全地设置实体的属性基础值
+     * @param entity 目标实体
+     * @param attribute 属性定义
+     * @param baseValue 基础值
+     */
+    fun setAttributeBaseValue(entity: LivingEntity, attribute: StatAttribute, baseValue: Double) {
+        AttributeManager.setAttributeBaseValue(entity, attribute, baseValue)
+    }
+    
+    /**
+     * 为实体添加临时属性修改器
+     * @param entity 目标实体
+     * @param attribute 属性定义
+     * @param name 修改器名称
+     * @param amount 修改值
+     * @param operation 操作类型
+     * @param source 来源标识
+     * @return 添加的修改器ID
+     */
+    fun addTemporaryModifier(
+        entity: LivingEntity,
+        attribute: StatAttribute,
+        name: String,
+        amount: Double,
+        operation: com.arteam.statcore.api.attributes.AttributeOperation,
+        source: ResourceLocation
+    ): UUID {
+        val modifier = AttributeModifier(
+            id = UUID.randomUUID(),
+            name = name,
+            amount = amount,
+            operation = operation,
+            source = source
+        )
+        
+        AttributeManager.getAttributeMap(entity).addModifier(attribute, modifier)
+        return modifier.id
+    }
+    
+    /**
+     * 移除实体的指定修改器
+     * @param entity 目标实体
+     * @param attribute 属性定义
+     * @param modifierId 修改器ID
+     * @return 如果成功移除返回true
+     */
+    fun removeModifier(entity: LivingEntity, attribute: StatAttribute, modifierId: UUID): Boolean {
+        return AttributeManager.getAttributeMap(entity).removeModifier(attribute, modifierId)
+    }
+    
+    /**
+     * 根据来源移除实体的所有修改器
+     * @param entity 目标实体
+     * @param source 来源标识
+     * @return 移除的修改器数量
+     */
+    fun removeModifiersBySource(entity: LivingEntity, source: ResourceLocation): Int {
+        return AttributeManager.getAttributeMap(entity).removeModifiersBySource(source)
+    }
+    
+    /**
+     * 检查实体是否为玩家
+     * @param entity 目标实体
+     * @return 如果是玩家返回true
+     */
+    fun isPlayer(entity: LivingEntity): Boolean {
+        return entity is Player
+    }
+    
+    /**
+     * 获取实体适用的所有属性
+     * @param entity 目标实体
+     * @return 适用的属性列表
+     */
+    fun getApplicableAttributes(entity: LivingEntity): List<StatAttribute> {
+        return AttributeManager.registry.getApplicableAttributes(entity)
+    }
+    
+    /**
+     * 创建资源位置
+     * @param namespace 命名空间
+     * @param path 路径
+     * @return 资源位置实例
+     */
+    fun createResourceLocation(namespace: String, path: String): ResourceLocation {
+        return ResourceLocation.fromNamespaceAndPath(namespace, path)
+    }
+    
+    /**
+     * 创建 StatCore 命名空间的资源位置
+     * @param path 路径
+     * @return 资源位置实例
+     */
+    fun createStatCoreLocation(path: String): ResourceLocation {
+        return ResourceLocation.fromNamespaceAndPath("statcore", path)
+    }
+    
+    /**
+     * 格式化属性值为显示字符串
+     * @param value 属性值
+     * @param precision 小数精度（默认2位）
+     * @return 格式化后的字符串
+     */
+    fun formatAttributeValue(value: Double, precision: Int = 2): String {
+        return if (value == value.toLong().toDouble()) {
+            // 整数值
+            value.toLong().toString()
+        } else {
+            // 小数值
+            String.format("%.${precision}f", value)
+        }
+    }
+    
+    /**
+     * 比较两个属性值是否近似相等
+     * @param value1 第一个值
+     * @param value2 第二个值
+     * @param epsilon 误差范围（默认0.001）
+     * @return 如果近似相等返回true
+     */
+    fun isValueEqual(value1: Double, value2: Double, epsilon: Double = 0.001): Boolean {
+        return kotlin.math.abs(value1 - value2) < epsilon
+    }
+    
+    /**
+     * 计算百分比修改器的实际影响
+     * @param baseValue 基础值
+     * @param percentage 百分比（例如0.1表示10%）
+     * @return 实际影响值
+     */
+    fun calculatePercentageImpact(baseValue: Double, percentage: Double): Double {
+        return baseValue * percentage
+    }
+    
+    /**
+     * 验证属性ID是否有效
+     * @param id 资源位置ID
+     * @return 如果有效返回true
+     */
+    fun isValidAttributeId(id: ResourceLocation): Boolean {
+        return id.namespace.isNotBlank() && 
+               id.path.isNotBlank() &&
+               id.namespace.matches(Regex("[a-z0-9_.-]+")) &&
+               id.path.matches(Regex("[a-z0-9_./]+"))
+    }
+} 
