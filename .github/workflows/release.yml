@@ -48,13 +48,30 @@ jobs:
       - name: Get commit history
         id: commits
         run: |
+          # 获取当前提交的 SHA
+          CURRENT_SHA=$(git rev-parse HEAD)
+
           # 获取上一个标签
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "initial")
-          # 获取从上一个标签到现在的所有提交信息
-          COMMITS=$(git log $PREV_TAG..HEAD --pretty=format:"- %s" --reverse)
+
+          # 获取标签对应的 SHA
+          PREV_SHA=$(git rev-parse $PREV_TAG 2>/dev/null || echo "")
+
+          if [ -z "$PREV_SHA" ]; then
+            # 如果没有找到上一个标签，获取所有提交
+            COMMITS=$(git log --pretty=format:"- %s%n%b" --reverse)
+          else
+            # 获取两个标签之间的提交
+            COMMITS=$(git log $PREV_SHA..$CURRENT_SHA --pretty=format:"- %s%n%b" --reverse)
+          fi
+
+          # 处理提交信息，移除空行和重复的标题
+          COMMITS=$(echo "$COMMITS" | sed '/^$/d' | sed 's/^- -/-/')
+
           # 将提交信息写入临时文件
           echo "$COMMITS" > commit_history.txt
-          # 读取文件内容并设置输出
+
+          # 设置输出
           echo "commits<<EOF" >> $GITHUB_OUTPUT
           cat commit_history.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
@@ -76,14 +93,58 @@ jobs:
           echo "$LATEST_RELEASE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
+      - name: Get associated pull requests
+        id: prs
+        run: |
+          # 获取当前提交的 SHA
+          CURRENT_SHA=$(git rev-parse HEAD)
+
+          # 获取上一个标签
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "initial")
+
+          # 获取标签对应的 SHA
+          PREV_SHA=$(git rev-parse $PREV_TAG 2>/dev/null || echo "")
+
+          if [ -z "$PREV_SHA" ]; then
+            # 如果没有找到上一个标签，获取所有提交
+            COMMITS=$(git log --pretty=format:"%H" --reverse)
+          else
+            # 获取两个标签之间的提交
+            COMMITS=$(git log $PREV_SHA..$CURRENT_SHA --pretty=format:"%H" --reverse)
+          fi
+
+          # 获取每个提交关联的 PR
+          PRS=""
+          for COMMIT in $COMMITS; do
+            PR_INFO=$(curl -s \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/commits/$COMMIT/pulls" | \
+              grep -o '"number": [0-9]*' | cut -d' ' -f2)
+            
+            if [ ! -z "$PR_INFO" ]; then
+              for PR in $PR_INFO; do
+                PRS="$PRS- #$PR\n"
+              done
+            fi
+          done
+
+          # 移除重复的 PR
+          PRS=$(echo -e "$PRS" | sort -u)
+
+          echo "prs<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$PRS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Prepare release body
         id: release_body
         run: |
           BUILD_TIME=$(date +'%Y-%m-%d %H:%M:%S')
           COMMIT_HASH=$(git rev-parse --short HEAD)
 
-          # 读取提交历史
+          # 读取提交历史和 PR 信息
           COMMIT_HISTORY=$(cat commit_history.txt)
+          PR_HISTORY=${{ steps.prs.outputs.prs }}
 
           {
             echo "body<<EOF"
@@ -92,6 +153,11 @@ jobs:
             echo "### 更新内容"
             echo "$COMMIT_HISTORY"
             echo ""
+            if [ ! -z "$PR_HISTORY" ]; then
+              echo "### 相关 Pull Requests"
+              echo "$PR_HISTORY"
+              echo ""
+            fi
             echo "### 构建信息"
             echo "- 版本: ${{ steps.version.outputs.version }}"
             echo "- 构建时间: $BUILD_TIME"
