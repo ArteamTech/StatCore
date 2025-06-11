@@ -48,7 +48,7 @@ jobs:
 
       - name: Automatic release
         if: success()
-        uses: marvinpinto/action-automatic-releases@latest
+        uses: marvinpinto/action-automatic-releases@master
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           automatic_release_tag: ${{ steps.timestamp.outputs.timestamp }}
