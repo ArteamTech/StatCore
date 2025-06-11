@@ -26,8 +26,6 @@ object ImmediateSyncManager {
         try {
             forceSyncHealth(entity)
             forceSyncDefense(entity)
-            
-            LOGGER.debug("强制同步实体 {} 的所有属性", entity.uuid)
         } catch (e: Exception) {
             LOGGER.error("强制同步属性时发生错误: {}", e.message, e)
         }
@@ -50,8 +48,6 @@ object ImmediateSyncManager {
             
             // 同步最大血量到原版系统
             AttributeSyncManager.syncEntityAttributes(entity)
-            
-            LOGGER.debug("强制同步实体 {} 血量: {} -> {}", entity.uuid, vanillaHealth, syncedHealth)
         } catch (e: Exception) {
             LOGGER.error("强制同步血量时发生错误: {}", e.message, e)
         }
@@ -71,9 +67,6 @@ object ImmediateSyncManager {
             
             AttributeManager.setAttributeBaseValue(entity, CoreAttributes.PHYSICAL_DEFENSE, physicalDefense)
             AttributeSyncManager.syncEntityAttributes(entity)
-            
-            LOGGER.debug("强制同步实体 {} 防御: 护甲={} -> 物理防御={}", 
-                entity.uuid, currentArmor, physicalDefense)
         } catch (e: Exception) {
             LOGGER.error("强制同步防御时发生错误: {}", e.message, e)
         }
