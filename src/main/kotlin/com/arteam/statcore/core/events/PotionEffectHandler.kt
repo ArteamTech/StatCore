@@ -53,7 +53,6 @@ object PotionEffectHandler {
         when (effect) {
             MobEffects.RESISTANCE -> {
                 applyResistanceEffect(entity, amplifier + 1) // amplifier从0开始，所以+1得到实际等级
-                LOGGER.debug("为实体 {} 应用抗性提升效果，等级: {}", entity.uuid, amplifier + 1)
             }
             MobEffects.HEALTH_BOOST -> {
                 // 立即拦截并阻止原版生命提升效果
@@ -61,7 +60,6 @@ object PotionEffectHandler {
                 
                 // 应用我们的生命提升效果
                 applyHealthBoostEffect(entity, amplifier + 1)
-                LOGGER.debug("为实体 {} 应用生命提升效果，等级: {}", entity.uuid, amplifier + 1)
             }
         }
     }
@@ -80,11 +78,9 @@ object PotionEffectHandler {
         when (effect) {
             MobEffects.RESISTANCE -> {
                 removeResistanceEffect(entity)
-                LOGGER.debug("为实体 {} 移除抗性提升效果", entity.uuid)
             }
             MobEffects.HEALTH_BOOST -> {
                 removeHealthBoostEffect(entity)
-                LOGGER.debug("为实体 {} 移除生命提升效果", entity.uuid)
             }
         }
     }
@@ -103,11 +99,9 @@ object PotionEffectHandler {
         when (effect) {
             MobEffects.RESISTANCE -> {
                 removeResistanceEffect(entity)
-                LOGGER.debug("实体 {} 的抗性提升效果已过期", entity.uuid)
             }
             MobEffects.HEALTH_BOOST -> {
                 removeHealthBoostEffect(entity)
-                LOGGER.debug("实体 {} 的生命提升效果已过期", entity.uuid)
             }
         }
     }
@@ -221,9 +215,7 @@ object PotionEffectHandler {
                 // 原版生命提升效果使用的是 "minecraft:effect.health_boost" 作为修改器ID
                 val modifierRemoved = vanillaHealthInstance.removeModifier(VANILLA_HEALTH_BOOST_ID)
                 
-                if (modifierRemoved) {
-                    LOGGER.debug("精确移除原版生命提升修改器: {}", VANILLA_HEALTH_BOOST_ID)
-                } else {
+                if (!modifierRemoved) {
                     // 如果通过ID移除失败，尝试通过特征移除（作为备用方案）
                     val modifiersToRemove = vanillaHealthInstance.modifiers.filter { modifier ->
                         // 原版生命提升修改器的数学特征：正数且为4的倍数（每级+4血量）
@@ -232,7 +224,6 @@ object PotionEffectHandler {
                     
                     modifiersToRemove.forEach { modifier ->
                         vanillaHealthInstance.removeModifier(modifier.id)
-                        LOGGER.debug("通过特征移除原版生命提升修改器: {} ({})", modifier.id, modifier.amount)
                     }
                 }
             }

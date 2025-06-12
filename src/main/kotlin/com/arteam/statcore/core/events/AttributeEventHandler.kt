@@ -40,8 +40,6 @@ object AttributeEventHandler {
             // 立即初始化属性，确保所有生物都被处理
             try {
                 initializeEntityAttributes(entity)
-                val entityType = if (entity is Player) "玩家" else entity.type.description.string
-                LOGGER.info("已初始化实体 {} ({}) 的属性", entityType, entity.uuid)
             } catch (e: Exception) {
                 LOGGER.error("初始化实体属性时发生错误: {}", e.message, e)
             }

@@ -3,33 +3,44 @@ package com.arteam.statcore.client.screen
 import com.arteam.statcore.attributes.CoreAttributes
 import com.arteam.statcore.attributes.DefenseAttributes
 import com.arteam.statcore.attributes.DefenseType
+import com.arteam.statcore.client.gui.StatCoreTabButton
 import com.arteam.statcore.core.attributes.AttributeManager
 import com.arteam.statcore.util.AttributeUtils
 import net.minecraft.client.gui.GuiGraphics
-import net.minecraft.client.gui.components.Button
+import net.minecraft.client.gui.components.WidgetSprites
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.client.gui.screens.inventory.InventoryScreen
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.entity.player.Player
+import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Items
 
 /**
  * 属性显示屏幕
- * 显示玩家的血量和防御信息
+ * 显示玩家的血量和防御信息，使用与物品栏相同的背景遮罩效果
  */
+@Suppress("unused")
 class AttributeScreen(private val player: Player) : Screen(Component.translatable("screen.statcore.attributes")) {
     
     companion object {
         private const val BACKGROUND_WIDTH = 176
         private const val BACKGROUND_HEIGHT = 166
-        private const val TEXT_COLOR = 0xE0E0E0 // 浅灰色，更柔和
-        private const val VALUE_COLOR = 0xAAFFAA // 浅绿色
-        private const val HEALTH_COLOR = 0xFFAAAA // 浅红色
+        private const val TEXT_COLOR = 0x404040 // 深灰色文字
+        private const val VALUE_COLOR = 0x2E8B57 // 海绿色数值
+        private const val HEALTH_COLOR = 0xCD5C5C // 印第安红色血量
         private const val HOVER_COLOR = 0xFFFF55 // 亮黄色高亮
-        private const val BACKGROUND_COLOR = 0xFF1E1E1E.toInt() // 完全不透明的深灰色背景
+        
+        // 原版纹理资源
+        private val STAT_BACKGROUND = ResourceLocation.fromNamespaceAndPath("statcore", "textures/gui/stat.png")
+        private val CREATIVE_INVENTORY_TABS = ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/container/creative_inventory/tabs.png")
     }
     
     private var leftPos = 0
     private var topPos = 0
+    private var inventoryButton: StatCoreTabButton? = null
+    private var attributesButton: StatCoreTabButton? = null
     
     override fun init() {
         super.init()
@@ -38,46 +49,78 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
         leftPos = (width - BACKGROUND_WIDTH) / 2
         topPos = (height - BACKGROUND_HEIGHT) / 2
         
-        // 添加返回背包按钮
-        addRenderableWidget(
-            Button.builder(Component.translatable("gui.statcore.back_to_inventory")) { button ->
-                minecraft?.setScreen(InventoryScreen(player))
-            }
-            .bounds(leftPos + 7, topPos + BACKGROUND_HEIGHT - 26, 80, 20)
-            .build()
+        // 创建按钮纹理精灵（使用创造模式标签页纹理）
+        val inventoryButtonSprites = WidgetSprites(
+            ResourceLocation.fromNamespaceAndPath("minecraft", "container/creative_inventory/tab_top_unselected_1"),
+            ResourceLocation.fromNamespaceAndPath("minecraft", "container/creative_inventory/tab_top_selected_1")
         )
+        
+        val attributesButtonSprites = WidgetSprites(
+            ResourceLocation.fromNamespaceAndPath("minecraft", "container/creative_inventory/tab_top_selected_2"),
+            ResourceLocation.fromNamespaceAndPath("minecraft", "container/creative_inventory/tab_top_unselected_2")
+        )
+        
+        // 添加背包按钮（左侧第一个，未激活状态）
+        inventoryButton = StatCoreTabButton(
+            leftPos, topPos - 28,       // 位置：与物品栏左侧对齐，在物品栏上方
+            28, 32,                      // 大小
+            inventoryButtonSprites,      // 纹理精灵
+            { minecraft?.setScreen(InventoryScreen(player)) },
+            Component.translatable("gui.statcore.inventory.tooltip"),
+            false,                       // 未选中状态
+            ItemStack(Items.CHEST)       // 箱子图标
+        )
+        
+        // 添加属性按钮（左侧第二个，激活状态）
+        attributesButton = StatCoreTabButton(
+            leftPos + 28, topPos - 28,  // 位置：紧贴背包按钮右侧
+            28, 32,                      // 大小
+            attributesButtonSprites,     // 纹理精灵
+            { /* 点击属性按钮，不做任何操作（已经在属性界面） */ },
+            Component.translatable("gui.statcore.attributes.tooltip"),
+            true,                        // 选中状态
+            ItemStack(Items.IRON_SWORD)  // 铁剑图标
+        )
+        
+        // 注意：不添加到渲染系统，我们手动控制渲染
     }
     
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        // 首先渲染整个屏幕的变暗背景
+        // 渲染背景（与物品栏相同的变暗效果）
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick)
         
-        // 然后渲染我们的不透明GUI面板
+        // 先渲染未选中的按钮（在背景之前）
+        inventoryButton?.renderBackground(guiGraphics, mouseX, mouseY, partialTick)
+        
+        // 渲染原版样式的GUI背景
         renderBg(guiGraphics, partialTick, mouseX, mouseY)
         
-        // 最后在不透明面板上渲染所有元素
+        // 渲染界面元素
         super.render(guiGraphics, mouseX, mouseY, partialTick)
         renderAttributes(guiGraphics, mouseX, mouseY)
+        
+        // 最后渲染选中的按钮（在前景）
+        attributesButton?.renderForeground(guiGraphics, mouseX, mouseY, partialTick)
+        
         renderTooltips(guiGraphics, mouseX, mouseY)
     }
     
     private fun renderBg(guiGraphics: GuiGraphics, partialTick: Float, mouseX: Int, mouseY: Int) {
-        // 渲染完全不透明的背景
-        guiGraphics.fill(leftPos, topPos, leftPos + BACKGROUND_WIDTH, topPos + BACKGROUND_HEIGHT, BACKGROUND_COLOR)
-        
-        // 使用更亮的颜色添加边框，使其在深色背景上更突出
-        val borderColor = 0xFF888888.toInt()
-        guiGraphics.hLine(leftPos - 1, leftPos + BACKGROUND_WIDTH, topPos - 1, borderColor) // 上
-        guiGraphics.hLine(leftPos - 1, leftPos + BACKGROUND_WIDTH, topPos + BACKGROUND_HEIGHT, borderColor) // 下
-        guiGraphics.vLine(leftPos - 1, topPos - 1, topPos + BACKGROUND_HEIGHT, borderColor) // 左
-        guiGraphics.vLine(leftPos + BACKGROUND_WIDTH, topPos - 1, topPos + BACKGROUND_HEIGHT + 1, borderColor) // 右
+        // 使用StatCore自定义背景纹理
+        guiGraphics.blit(
+            RenderType::guiTextured,
+            STAT_BACKGROUND,
+            leftPos, topPos, 0.0f, 0.0f,
+            BACKGROUND_WIDTH, BACKGROUND_HEIGHT,
+            256, 256
+        )
     }
     
     private fun renderAttributes(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int) {
         // 标题
         val titleText = Component.translatable("gui.statcore.attributes.title")
         val titleWidth = font.width(titleText)
-        guiGraphics.drawString(font, titleText, leftPos + (BACKGROUND_WIDTH - titleWidth) / 2, topPos + 6, TEXT_COLOR, true)
+        guiGraphics.drawString(font, titleText, leftPos + (BACKGROUND_WIDTH - titleWidth) / 2, topPos + 6, TEXT_COLOR, false)
         
         var yOffset = 25
         
@@ -95,11 +138,11 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
         
         // 血量标题
         val healthTitle = Component.translatable("gui.statcore.health")
-        guiGraphics.drawString(font, healthTitle, leftPos + 12, topPos + yOffset, TEXT_COLOR, true)
+        guiGraphics.drawString(font, healthTitle, leftPos + 12, topPos + yOffset, TEXT_COLOR, false)
         
-        // 血量值 - 使用专门的血量颜色，启用阴影让文字更清晰
+        // 血量值
         val healthText = String.format("%.1f / %.1f", currentHealth, maxHealth)
-        guiGraphics.drawString(font, healthText, leftPos + 80, topPos + yOffset, HEALTH_COLOR, true)
+        guiGraphics.drawString(font, healthText, leftPos + 80, topPos + yOffset, HEALTH_COLOR, false)
         
         // 血量条
         renderHealthBar(guiGraphics, leftPos + 12, topPos + yOffset + 12, currentHealth, maxHealth)
@@ -107,22 +150,22 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
     
     private fun renderHealthBar(guiGraphics: GuiGraphics, x: Int, y: Int, current: Double, max: Double) {
         val barWidth = 152
-        val barHeight = 10 // 稍微增高一点
+        val barHeight = 8
         
-        // 背景（中灰色）
-        guiGraphics.fill(x, y, x + barWidth, y + barHeight, 0xFF555555.toInt())
+        // 背景（深灰色）
+        guiGraphics.fill(x, y, x + barWidth, y + barHeight, 0xFF8B8B8B.toInt())
         
-        // 血量条（明亮的红色）
+        // 血量条（红色）
         if (max > 0) {
             val healthPercent = (current / max).coerceIn(0.0, 1.0)
             val healthWidth = (barWidth * healthPercent).toInt()
-            guiGraphics.fill(x, y, x + healthWidth, y + barHeight, 0xFFFF6666.toInt())
+            guiGraphics.fill(x, y, x + healthWidth, y + barHeight, 0xFFDC143C.toInt())
         }
         
-        // 边框（深灰色）
-        val borderColor = 0xFF333333.toInt()
+        // 边框（深色）
+        val borderColor = 0xFF373737.toInt()
         guiGraphics.hLine(x - 1, x + barWidth, y - 1, borderColor) // 上
-        guiGraphics.hLine(x, x + barWidth, y + barHeight, borderColor) // 下
+        guiGraphics.hLine(x - 1, x + barWidth, y + barHeight, borderColor) // 下
         guiGraphics.vLine(x - 1, y - 1, y + barHeight, borderColor) // 左
         guiGraphics.vLine(x + barWidth, y - 1, y + barHeight + 1, borderColor) // 右
     }
@@ -130,13 +173,13 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
     private fun renderDefenseInfo(guiGraphics: GuiGraphics, yOffset: Int, mouseX: Int, mouseY: Int) {
         // 防御标题
         val defenseTitle = Component.translatable("gui.statcore.defense")
-        guiGraphics.drawString(font, defenseTitle, leftPos + 12, topPos + yOffset, TEXT_COLOR, true)
+        guiGraphics.drawString(font, defenseTitle, leftPos + 12, topPos + yOffset, TEXT_COLOR, false)
         
         // 物理防御值
         val damageReduction = DefenseAttributes.calculateDamageReduction(player, DefenseType.PHYSICAL)
         val physicalDefense = AttributeUtils.getAttributeValue(player, CoreAttributes.PHYSICAL_DEFENSE)
         val defenseText = String.format("%.1f (%.1f%%)", physicalDefense, damageReduction * 100)
-        guiGraphics.drawString(font, defenseText, leftPos + 80, topPos + yOffset, VALUE_COLOR, true)
+        guiGraphics.drawString(font, defenseText, leftPos + 80, topPos + yOffset, VALUE_COLOR, false)
         
         // 检查是否hover在防御文本上
         val textWidth = font.width(defenseText)
@@ -176,7 +219,7 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
         tooltipLines.add(Component.empty())
         addModifierTooltipInfo(tooltipLines, CoreAttributes.PHYSICAL_DEFENSE)
         
-        // 渲染tooltip - 转换为正确的类型
+        // 渲染tooltip
         val formattedTooltips = tooltipLines.map { it.visualOrderText }.toMutableList()
         guiGraphics.renderTooltip(font, formattedTooltips, mouseX, mouseY)
     }
@@ -186,7 +229,7 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
         val line = Component.translatable(translationKey)
             .append(": ")
             .append(String.format("%.1f (%.1f%%)", value, reduction * 100))
-            .withStyle { it.withColor(if (value > 0) 0x55FF55 else 0x888888) }
+            .withStyle { it.withColor(if (value > 0) 0x228B22 else 0x696969) }
         tooltipLines.add(line)
     }
     
@@ -202,24 +245,24 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
             tooltipLines.add(Component.translatable("gui.statcore.tooltip.base_value")
                 .append(": ")
                 .append(String.format("%.1f", baseValue))
-                .withStyle { it.withColor(0xFFFFFF) })
+                .withStyle { it.withColor(0x000000) })
             
             // 修改器
             if (modifiers.isNotEmpty()) {
-                tooltipLines.add(Component.translatable("gui.statcore.tooltip.modifiers").withStyle { it.withColor(0xAAAAAA) })
+                tooltipLines.add(Component.translatable("gui.statcore.tooltip.modifiers").withStyle { it.withColor(0x555555) })
                 for (modifier in modifiers.take(5)) { // 最多显示5个修改器
                     val modifierLine = Component.literal("  +")
                         .append(String.format("%.1f", modifier.amount))
                         .append(" (")
                         .append(modifier.name)
                         .append(")")
-                        .withStyle { it.withColor(0x55FF55) }
+                        .withStyle { it.withColor(0x228B22) }
                     tooltipLines.add(modifierLine)
                 }
                 
                 if (modifiers.size > 5) {
                     tooltipLines.add(Component.translatable("gui.statcore.tooltip.more_modifiers", modifiers.size - 5)
-                        .withStyle { it.withColor(0x888888) })
+                        .withStyle { it.withColor(0x696969) })
                 }
             }
         }
@@ -230,4 +273,21 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
     }
     
     override fun isPauseScreen(): Boolean = false
+    
+    override fun mouseClicked(mouseX: Double, mouseY: Double, button: Int): Boolean {
+        // 检查是否点击了我们的按钮
+        inventoryButton?.let { btn ->
+            if (btn.mouseClicked(mouseX, mouseY, button)) {
+                return true
+            }
+        }
+        
+        attributesButton?.let { btn ->
+            if (btn.mouseClicked(mouseX, mouseY, button)) {
+                return true
+            }
+        }
+        
+        return super.mouseClicked(mouseX, mouseY, button)
+    }
 }

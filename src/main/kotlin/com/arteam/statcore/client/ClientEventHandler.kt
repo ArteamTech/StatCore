@@ -1,7 +1,6 @@
 package com.arteam.statcore.client
 
 import com.arteam.statcore.client.screen.AttributeScreen
-import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.inventory.InventoryScreen
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.SubscribeEvent
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory
  * 处理GUI相关的客户端事件
  */
 @EventBusSubscriber(modid = "statcore", bus = EventBusSubscriber.Bus.GAME, value = [Dist.CLIENT])
+@Suppress("unused")
 object ClientEventHandler {
     
     private val LOGGER = LoggerFactory.getLogger("statcore.client")

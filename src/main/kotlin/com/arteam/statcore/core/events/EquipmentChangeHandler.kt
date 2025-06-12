@@ -78,10 +78,6 @@ object EquipmentChangeHandler {
                 
                 // 同步属性到原版系统
                 AttributeSyncManager.syncEntityAttributes(entity)
-                
-                val entityType = if (entity is Player) "玩家" else entity.type.description.string
-                LOGGER.debug("实体 {} ({}) 防御值已更新: 护甲={} -> 物理防御={} (原值={})", 
-                    entityType, entity.uuid, currentArmor, physicalDefense, currentPhysicalDefense)
             }
         } catch (e: Exception) {
             LOGGER.error("更新实体防御属性时发生错误: {}", e.message, e)

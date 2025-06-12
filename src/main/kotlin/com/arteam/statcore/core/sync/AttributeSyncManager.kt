@@ -25,8 +25,6 @@ object AttributeSyncManager {
     fun syncEntityAttributes(entity: LivingEntity) {
         try {
             syncMaxHealth(entity)
-            // 未来可以添加其他属性的同步
-            LOGGER.debug("已同步实体 {} 的所有属性", entity.uuid)
         } catch (e: Exception) {
             LOGGER.error("同步实体属性时发生错误: {}", e.message, e)
         }
@@ -54,13 +52,6 @@ object AttributeSyncManager {
                 // 注意：这里使用自定义的最大生命值而不是限制后的值
                 if (entity.health > customMaxHealth) {
                     entity.health = min(customMaxHealth, safeMaxHealth).toFloat()
-                }
-                
-                if (customMaxHealth > StatCore.VANILLA_MAX_HEALTH_LIMIT) {
-                    LOGGER.debug("实体 {} 最大生命值 {} 超过原版限制，同步为安全值: {}", 
-                        entity.uuid, customMaxHealth, safeMaxHealth)
-                } else {
-                    LOGGER.debug("同步实体 {} 最大生命值: {}", entity.uuid, safeMaxHealth)
                 }
             }
         }

@@ -18,126 +18,64 @@ StatCore 是一个基于 Minecraft 1.21.5 + NeoForge 21.5.75 的属性系统重�
 
 补充：由于在起步开发阶段，为了更好的实现需求并改进我们的结构框架，你可以适当修改API
 
-## 项目结构规划
+## 核心架构
 
-### 核心模块
-```
-src/main/kotlin/com/arteam/statcore/
-├── api/                   # 公共 API 接口
-│   ├── attributes/        # 属性相关 API
-│   ├── events/            # 自定义事件
-│   └── registry/          # 注册接口
-├── core/                  # 核心系统
-│   ├── attributes/        # 属性系统核心
-│   ├── calculation/       # 计算引擎
-│   └── registry/          # 注册管理器
-├── compat/                # 兼容性层
-│   ├── vanilla/           # 原版兼容
-│   └── modded/            # 模组兼容
-├── config/                # 配置系统
-├── data/                  # 数据包支持
-├── integration/           # 第三方集成
-└── util/                  # 工具类
-```
+### API 层
+- **属性接口**：定义了属性的基本结构和行为
+  - `StatAttribute`：属性基本接口
+  - `AttributeModifier`：属性修改器接口
+  - `AttributeInstance`：属性实例接口
 
-### 资源文件结构
-```
-src/main/resources/
-├── assets/statcore/
-│   ├── lang/              # 多语言支持
-│   │   ├── en_us.json     # 英文
-│   │   └── zh_cn.json     # 中文
-│   └── textures/          # 纹理资源（优先使用原版纹理）
-├── data/statcore/
-│   ├── attributes/        # 属性定义
-│   ├── recipes/           # 配方
-│   └── tags/              # 标签
-└── META-INF/
-    └── neoforge.mods.toml # 模组信息
-```
+### 核心实现层
+- **属性系统**：
+  - 属性注册表：管理所有注册的属性
+  - 属性实例管理：为实体创建和管理属性实例
+  - 修改器系统：应用和管理属性修改器
 
-## 1. 属性系统重构
+### 属性类型
+- **核心属性**：
+  - 生命值属性：玩家默认100，其他生物为原版生命值的5倍
+  - 防御系统：包括物理防御、弹射物防御、爆炸防御、火焰防御和真实防御
 
-### 核心属性接口
-```kotlin
-interface StatAttribute {
-    val id: ResourceLocation
-    val defaultValue: Double
-    val minValue: Double
-    val maxValue: Double
-    val isStackable: Boolean
-    
-    fun calculate(base: Double, modifiers: List<AttributeModifier>): Double
-}
-```
-
-### 属性计算引擎
-- 实现 `AttributeCalculationEngine` 类
-- 支持多种计算模式（加法、乘法、覆盖）
-- 提供计算缓存机制
-- 支持异步计算（非关键路径）
-
-### 自定义属性系统
-- 暴击伤害（Crit Damage）
-- 护甲穿透（Armor Penetration）
-- 法术强度（Spell Power）
-- 能量恢复（Energy Regeneration）
-- 经验加成（Experience Bonus）
-
-## 2. API 设计规范
+### 计算系统
+- **属性计算公式**：(基础值 + 所有加法修改器) × (1 + 所有乘法修改值)
+- **防御计算公式**：防御值 / (防御值 + 100)
 
 ### 事件系统
-```kotlin
-// 属性计算事件
-class AttributeCalculationEvent(
-    val entity: LivingEntity,
-    val attribute: Attribute,
-    var result: Double
-) : Event()
+- **属性事件**：
+  - 属性变更事件
+  - 属性同步事件
+- **装备事件**：
+  - 装备变更事件处理器
 
-// 属性修改事件
-class AttributeModifierEvent(
-    val entity: LivingEntity,
-    val attribute: Attribute,
-    val modifiers: MutableList<AttributeModifier>
-) : Event()
-```
+### 同步系统
+- **立即同步管理器**：处理属性变更的实时同步
 
-### 注册接口
-```kotlin
-interface AttributeRegistry {
-    fun register(attribute: StatAttribute): StatAttribute
-    fun getAttributes(): Collection<StatAttribute>
-    fun getAttribute(id: ResourceLocation): StatAttribute?
-}
-```
+## 文件结构
 
-### 修改器接口
-```kotlin
-interface AttributeModifierProvider {
-    fun getModifiers(entity: LivingEntity, attribute: Attribute): List<AttributeModifier>
-    fun getPriority(): Int
-}
-```
+### API 包
+- `api/attributes/`：属性相关API接口
+- `api/events/`：事件相关API接口
+- `api/registry/`：注册相关API接口
 
-## 3. 配置与数据包支持
+### 核心包
+- `core/attributes/`：属性核心实现
+- `core/registry/`：注册系统实现
+- `core/events/`：事件处理系统
+- `core/sync/`：同步管理系统
 
-### 配置文件结构
-```yaml
-# config/statcore-common.toml
-[attributes]
-    enable_custom_attributes = true
-    enable_calculation_cache = true
-    cache_duration_ms = 1000
+### 属性包
+- `attributes/`：具体属性实现
+  - `CoreAttributes.kt`：属性统一入口点
+  - `HealthAttributes.kt`：生命值属性实现
+  - `DefenseAttributes.kt`：防御属性实现
 
-[compatibility]
-    override_vanilla_calculation = true
-    enable_mod_integration = true
+### 命令包
+- `commands/`：游戏内命令实现
+  - `StatCommand.kt`：属性查看命令
 
-[debug]
-    log_calculations = false
-    log_modifier_applications = false
-```
+### 工具包
+- `util/`：工具类和辅助函数
 
 ### 数据包支持
 - JSON 格式的属性定义
@@ -145,48 +83,12 @@ interface AttributeModifierProvider {
 - 支持实体类型过滤
 - 支持维度限制
 
-## 4. 兼容性要求
+## 兼容性要求
 
 - 提供 Mixin 挂钩点
 - 支持其他模组的属性扩展
 - 兼容常见的装备模组
 - 提供迁移工具
-
-## 5. 开发工具与注解
-
-### 注解处理器
-```kotlin
-@AttributeDefinition
-annotation class DefineAttribute(
-    val id: String,
-    val defaultValue: Double = 0.0,
-    val min: Double = Double.MIN_VALUE,
-    val max: Double = Double.MAX_VALUE
-)
-
-@ModifierProvider
-annotation class ProvideModifier(
-    val priority: Int = 0,
-    val target: Array<String> = []
-)
-```
-
-### 代码生成器
-- 自动生成属性注册代码
-- 生成 API 文档
-- 创建示例配置文件
-
-## 6. 测试策略
-
-### 单元测试
-- 属性计算逻辑测试
-- 修改器应用测试
-- 事件触发测试
-
-### 集成测试
-- 多模组环境测试
-- 性能基准测试
-- 兼容性测试
 
 ## 7. 性能优化
 
@@ -207,7 +109,6 @@ annotation class ProvideModifier(
 - 错误消息
 - 配置描述
 - JEI/EMI 集成文本
-- 调试信息
 
 ### 本地化文件格式
 ```json
