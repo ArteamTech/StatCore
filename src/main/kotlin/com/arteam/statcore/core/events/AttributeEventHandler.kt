@@ -93,7 +93,7 @@ object AttributeEventHandler {
         // 受伤后立即同步血量
         ImmediateSyncManager.asyncForceSyncAll(entity)
     }
-    
+
     /**
      * 初始化实体属性
      * 包括生命值迁移和护甲迁移
@@ -101,13 +101,23 @@ object AttributeEventHandler {
     private fun initializeEntityAttributes(entity: LivingEntity) {
         // 初始化属性映射
         AttributeManager.initializeEntityAttributes(entity)
-        
-        // 迁移最大生命值
-        migrateMaxHealth(entity)
-        
-        // 迁移护甲值到物理防御
-        migrateArmorToPhysicalDefense(entity)
-        
+
+        // 防止重复初始化：检查实体 PersistentData
+        val data = entity.persistentData
+        val alreadyInitialized = data.getBoolean("statcore_initialized").orElse(false)
+
+        if (!alreadyInitialized) {
+            // 首次初始化：迁移原版血量/护甲到我们的系统
+            migrateMaxHealth(entity)
+            migrateArmorToPhysicalDefense(entity)
+
+            // 标记已初始化，避免下次再次放大
+            data.putBoolean("statcore_initialized", true)
+        } else {
+            // 已初始化：仅确保护甲值正确映射（可能装备变化触发）
+            migrateArmorToPhysicalDefense(entity)
+        }
+
         // 同步所有属性到原版系统
         AttributeSyncManager.syncEntityAttributes(entity)
     }
@@ -117,35 +127,24 @@ object AttributeEventHandler {
      * 将原版最大生命值放大到我们的系统
      */
     private fun migrateMaxHealth(entity: LivingEntity) {
-        // 使用固定的原版基础血量值，避免重复放大
-        val vanillaBaseMaxHealth = getVanillaBaseMaxHealth(entity)
-        val vanillaCurrentHealth = entity.health.toDouble()
+        // 直接使用实体当前的原版最大生命值作为基准值，避免硬编码
         val vanillaMaxHealth = entity.maxHealth.toDouble()
-        
+
+        // 记录当前血量，稍后按比例转换
+        val vanillaCurrentHealth = entity.health.toDouble()
+
+        // 计算缩放后的最大生命值
         val scaledMaxHealth = if (entity is Player) {
-            // 玩家使用默认值
+            // 玩家统一使用固定值（100）
             StatCore.PLAYER_DEFAULT_MAX_HEALTH
         } else {
-            // 其他实体使用固定的原版基础值乘以缩放因子
-            vanillaBaseMaxHealth * StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
+            // 其他生物 = 原版最大生命值 × 5
+            vanillaMaxHealth * StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
         }
-        
-        // 计算当前血量的缩放值
-        val scaledCurrentHealth = if (entity is Player) {
-            // 玩家保持当前血量比例
-            val healthRatio = vanillaCurrentHealth / vanillaMaxHealth
-            StatCore.PLAYER_DEFAULT_MAX_HEALTH * healthRatio
-        } else {
-            // 其他实体：如果当前血量已经被放大过，就按比例处理；否则直接放大
-            if (vanillaMaxHealth > vanillaBaseMaxHealth * 1.5) {
-                // 血量已经被放大过，按比例计算
-                val healthRatio = vanillaCurrentHealth / vanillaMaxHealth
-                scaledMaxHealth * healthRatio
-            } else {
-                // 血量还没被放大过，直接放大
-                vanillaCurrentHealth * StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
-            }
-        }
+
+        // 当前血量按比例转换
+        val healthRatio = if (vanillaMaxHealth > 0) vanillaCurrentHealth / vanillaMaxHealth else 0.0
+        val scaledCurrentHealth = scaledMaxHealth * healthRatio
         
         // 设置到我们的属性系统
         AttributeManager.setAttributeBaseValue(entity, CoreAttributes.MAX_HEALTH, scaledMaxHealth)
@@ -159,119 +158,7 @@ object AttributeEventHandler {
         // 设置原版当前血量
         entity.health = scaledCurrentHealth.toFloat()
     }
-    
-    /**
-     * 获取实体的原版基础最大生命值
-     * 这些是固定的原版血量值，不会被其他模组或系统修改
-     */
-    private fun getVanillaBaseMaxHealth(entity: LivingEntity): Double {
-        // 使用实体类型的注册名来获取固定的原版血量值
-        val entityTypeName = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(entity.type).toString()
-        return when (entityTypeName) {
-            // 玩家
-            "minecraft:player" -> 20.0
-            
-            // 被动生物
-            "minecraft:allay" -> 20.0
-            "minecraft:axolotl" -> 14.0
-            "minecraft:armadillo" -> 12.0
-            "minecraft:bat" -> 6.0
-            "minecraft:camel" -> 32.0
-            "minecraft:cat" -> 10.0
-            "minecraft:chicken" -> 4.0
-            "minecraft:cod" -> 3.0
-            "minecraft:cow" -> 10.0
-            "minecraft:donkey" -> 15.0  // 到 30.0 (随机)
-            "minecraft:fox" -> 10.0     // Java版，基岩版是20
-            "minecraft:frog" -> 10.0
-            "minecraft:glow_squid" -> 10.0
-            "minecraft:horse" -> 15.0   // 到 30.0 (随机)
-            "minecraft:mooshroom" -> 10.0
-            "minecraft:mule" -> 15.0    // 到 30.0 (随机)
-            "minecraft:ocelot" -> 10.0
-            "minecraft:parrot" -> 6.0
-            "minecraft:pig" -> 10.0
-            "minecraft:pufferfish" -> 3.0
-            "minecraft:rabbit" -> 3.0
-            "minecraft:salmon" -> 3.0
-            "minecraft:sheep" -> 8.0
-            "minecraft:skeleton_horse" -> 15.0
-            "minecraft:snow_golem" -> 4.0
-            "minecraft:sniffer" -> 14.0
-            "minecraft:squid" -> 10.0
-            "minecraft:strider" -> 20.0
-            "minecraft:tadpole" -> 6.0
-            "minecraft:tropical_fish" -> 3.0
-            "minecraft:turtle" -> 30.0
-            "minecraft:villager" -> 20.0
-            "minecraft:wandering_trader" -> 20.0
-            
-            // 中性生物
-            "minecraft:bee" -> 10.0
-            "minecraft:cave_spider" -> 12.0
-            "minecraft:dolphin" -> 10.0
-            "minecraft:enderman" -> 40.0
-            "minecraft:goat" -> 10.0
-            "minecraft:iron_golem" -> 100.0
-            "minecraft:llama" -> 15.0   // 到 30.0 (随机)
-            "minecraft:panda" -> 20.0   // 虚弱熊猫是10
-            "minecraft:piglin" -> 16.0
-            "minecraft:polar_bear" -> 30.0
-            "minecraft:spider" -> 16.0
-            "minecraft:trader_llama" -> 15.0 // 到 30.0 (随机)
-            "minecraft:wolf" -> 8.0     // 野生状态，驯服后是20
-            "minecraft:zombified_piglin" -> 20.0
-            
-            // 敌对生物
-            "minecraft:blaze" -> 20.0
-            "minecraft:bogged" -> 16.0
-            "minecraft:breeze" -> 30.0
-            "minecraft:creaking" -> 1.0
-            "minecraft:creeper" -> 20.0
-            "minecraft:drowned" -> 20.0
-            "minecraft:elder_guardian" -> 80.0
-            "minecraft:endermite" -> 8.0
-            "minecraft:evoker" -> 24.0
-            "minecraft:ghast" -> 10.0
-            "minecraft:guardian" -> 30.0
-            "minecraft:hoglin" -> 40.0
-            "minecraft:husk" -> 20.0
-            "minecraft:magma_cube" -> 16.0  // 大型，中型4，小型1
-            "minecraft:phantom" -> 20.0
-            "minecraft:piglin_brute" -> 50.0
-            "minecraft:pillager" -> 24.0
-            "minecraft:ravager" -> 100.0
-            "minecraft:shulker" -> 30.0
-            "minecraft:silverfish" -> 8.0
-            "minecraft:skeleton" -> 20.0
-            "minecraft:slime" -> 16.0   // 大型，中型4，小型1
-            "minecraft:stray" -> 20.0
-            "minecraft:vex" -> 14.0
-            "minecraft:vindicator" -> 24.0
-            "minecraft:warden" -> 500.0
-            "minecraft:witch" -> 26.0
-            "minecraft:wither_skeleton" -> 20.0
-            "minecraft:zoglin" -> 40.0
-            "minecraft:zombie" -> 20.0
-            "minecraft:zombie_villager" -> 20.0
-            
-            // Boss
-            "minecraft:ender_dragon" -> 200.0
-            "minecraft:wither" -> 300.0
-            
-            // 默认值：如果是未知实体，尝试从当前血量推断原版基础值
-            else -> {
-                val currentMaxHealth = entity.maxHealth.toDouble()
-                // 如果当前血量是5的倍数且大于原版范围，可能已经被放大了
-                if (currentMaxHealth > 50.0 && currentMaxHealth % 5.0 == 0.0) {
-                    currentMaxHealth / StatCore.VANILLA_TO_STATCORE_SCALE_FACTOR
-                } else {
-                    currentMaxHealth
-                }
-            }
-        }
-    }
-    
+
     /**
      * 迁移护甲值到物理防御
      * 将原版护甲点数转换为我们的物理防御值

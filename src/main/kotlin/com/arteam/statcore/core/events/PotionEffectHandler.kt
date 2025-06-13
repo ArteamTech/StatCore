@@ -14,7 +14,6 @@ import net.neoforged.bus.api.EventPriority
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.entity.living.MobEffectEvent
-import net.neoforged.neoforge.event.tick.EntityTickEvent
 import org.slf4j.LoggerFactory
 
 /**
@@ -229,24 +228,6 @@ object PotionEffectHandler {
             }
         } catch (e: Exception) {
             LOGGER.error("移除原版生命提升修改器时出错", e)
-        }
-    }
-
-    /**
-     * 生物Tick事件 - 持续监控并移除原版生命提升修改器
-     */
-    @SubscribeEvent(priority = EventPriority.HIGHEST)
-    fun onEntityTick(event: EntityTickEvent.Post) {
-        val entity = event.entity
-        if (entity !is LivingEntity || entity.level().isClientSide) return
-        
-        // 检查实体是否有生命提升效果
-        val healthBoostEffect = entity.getEffect(MobEffects.HEALTH_BOOST)
-        if (healthBoostEffect != null) {
-            // 每5 ticks检查一次并移除原版修改器
-            if (entity.tickCount % 5 == 0) {
-                removeVanillaHealthBoostModifiers(entity)
-            }
         }
     }
 } 

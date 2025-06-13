@@ -8,7 +8,6 @@ import net.neoforged.bus.api.EventPriority
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
 import net.neoforged.neoforge.event.tick.PlayerTickEvent
-import net.neoforged.neoforge.event.tick.ServerTickEvent
 import org.slf4j.LoggerFactory
 import kotlin.math.abs
 import kotlin.math.min
@@ -22,8 +21,6 @@ import kotlin.math.min
 object HealthSyncHandler {
     
     private val LOGGER = LoggerFactory.getLogger("statcore.health_sync")
-    private var entitySyncTicker = 0
-    private const val ENTITY_SYNC_INTERVAL = 10 // 每0.5秒同步一次非玩家实体（20 ticks/秒 × 0.5秒）
     
     /**
      * 玩家Tick事件 - 同步血量
@@ -36,40 +33,6 @@ object HealthSyncHandler {
         // 每2 ticks（0.1秒）同步一次血量，提高响应性
         if (player.tickCount % 2 == 0) {
             syncEntityHealth(player)
-        }
-    }
-    
-    /**
-     * 服务器Tick事件 - 同步所有实体血量
-     */
-    @SubscribeEvent(priority = EventPriority.LOW)
-    fun onServerTick(event: ServerTickEvent.Pre) {
-        entitySyncTicker++
-        
-        if (entitySyncTicker >= ENTITY_SYNC_INTERVAL) {
-            entitySyncTicker = 0
-            syncAllEntitiesHealth(event)
-        }
-    }
-    
-    /**
-     * 同步所有实体的血量
-     */
-    private fun syncAllEntitiesHealth(event: ServerTickEvent.Pre) {
-        val server = event.server
-        
-        try {
-            // 获取所有已加载的实体
-            for (level in server.allLevels) {
-                for (entity in level.allEntities) {
-                    if (entity is LivingEntity && entity !is Player) {
-                        // 对非玩家实体进行血量同步（玩家已在PlayerTick中处理）
-                        syncEntityHealth(entity)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            LOGGER.error("批量同步实体血量时发生错误: {}", e.message, e)
         }
     }
     

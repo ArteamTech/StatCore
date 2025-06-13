@@ -89,5 +89,6 @@
   
   "gui.statcore.tooltip.base_value": "基础值",
   "gui.statcore.tooltip.modifiers": "修改器",
-  "gui.statcore.tooltip.more_modifiers": "还有 %d 个修改器..."
+  "gui.statcore.tooltip.more_modifiers": "还有 %d 个修改器...",
+  "gui.statcore.tooltip.modifiers_unavailable": "客户端无法查看修改器详情"
 }
