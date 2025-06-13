@@ -1,7 +1,5 @@
 package com.arteam.statcore.client
 
-import com.arteam.statcore.client.screen.AttributeScreen
-import net.minecraft.client.gui.screens.inventory.InventoryScreen
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.common.EventBusSubscriber
@@ -24,13 +22,7 @@ object ClientEventHandler {
      */
     @SubscribeEvent
     fun onScreenInit(event: ScreenEvent.Init.Post) {
-        val screen = event.screen
-        
-        if (screen is InventoryScreen) {
-            LOGGER.debug("物品栏界面已初始化，按钮应该已添加")
-        } else if (screen is AttributeScreen) {
-            LOGGER.debug("属性界面已初始化")
-        }
+        // TODO: 在这里添加GUI初始化逻辑
     }
     
     /**
@@ -39,10 +31,6 @@ object ClientEventHandler {
      */
     @SubscribeEvent
     fun onScreenClose(event: ScreenEvent.Closing) {
-        val screen = event.screen
-        
-        if (screen is AttributeScreen) {
-            LOGGER.debug("属性界面已关闭")
-        }
+        // TODO: 在这里添加GUI关闭逻辑
     }
 } 

@@ -97,10 +97,10 @@ public class InventoryScreenMixin {
     }
     
     /**
-     * 在物品栏背景渲染之前渲染未选中的按钮
+     * 在物品栏背景渲染之前，但在背景变暗效果之后渲染未选中的按钮
      */
-    @Inject(method = "render", at = @At("HEAD"))
-    private void statcore$renderButtonsBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
+    @Inject(method = "renderBg", at = @At("HEAD"))
+    private void statcore$renderButtonsBackground(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY, CallbackInfo ci) {
         // 渲染未选中状态的按钮（在物品栏背景之前）
         if (statcore$attributesButton != null) {
             statcore$attributesButton.renderBackground(guiGraphics, mouseX, mouseY, partialTick);

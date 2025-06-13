@@ -86,8 +86,8 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
     }
     
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {
-        // 渲染背景（与物品栏相同的变暗效果）
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick)
+        // 渲染透明背景（与物品栏相同的变暗效果）
+        this.renderTransparentBackground(guiGraphics)
         
         // 先渲染未选中的按钮（在背景之前）
         inventoryButton?.renderBackground(guiGraphics, mouseX, mouseY, partialTick)
@@ -95,8 +95,7 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
         // 渲染原版样式的GUI背景
         renderBg(guiGraphics, partialTick, mouseX, mouseY)
         
-        // 渲染界面元素
-        super.render(guiGraphics, mouseX, mouseY, partialTick)
+        // 手动渲染所有需要渲染的元素
         renderAttributes(guiGraphics, mouseX, mouseY)
         
         // 最后渲染选中的按钮（在前景）
@@ -270,6 +269,16 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
     
     private fun isMouseOverArea(mouseX: Int, mouseY: Int, x: Int, y: Int, width: Int, height: Int): Boolean {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height
+    }
+    
+    override fun keyPressed(keyCode: Int, scanCode: Int, modifiers: Int): Boolean {
+        // 当按下ESC或物品栏键时关闭屏幕
+        if (keyCode == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE || this.minecraft!!.options.keyInventory.matches(keyCode, scanCode)) {
+            this.onClose()
+            return true
+        }
+        // 其他按键事件交由父类处理
+        return super.keyPressed(keyCode, scanCode, modifiers)
     }
     
     override fun isPauseScreen(): Boolean = false
