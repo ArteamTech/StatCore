@@ -83,6 +83,15 @@ class AttributeScreen(private val player: Player) : Screen(Component.translatabl
         )
         
         // 注意：不添加到渲染系统，我们手动控制渲染
+        
+        // 请求服务器同步最新属性数据
+        try {
+            net.neoforged.neoforge.network.PacketDistributor.sendToServer(
+                com.arteam.statcore.network.payload.RequestAttributesPayload()
+            )
+        } catch (_: Exception) {
+            // 忽略在客户端单机环境下可能出现的空连接
+        }
     }
     
     override fun render(guiGraphics: GuiGraphics, mouseX: Int, mouseY: Int, partialTick: Float) {

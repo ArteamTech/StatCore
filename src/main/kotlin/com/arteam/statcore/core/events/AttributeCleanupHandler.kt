@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
  * 负责在实体离开世界或服务器关闭时释放缓存，避免内存泄漏
  */
 @EventBusSubscriber(modid = "statcore")
+@Suppress("unused")
 object AttributeCleanupHandler {
 
     private val LOGGER = LoggerFactory.getLogger("statcore.cleanup")
@@ -24,10 +25,7 @@ object AttributeCleanupHandler {
     fun onEntityLeave(event: EntityLeaveLevelEvent) {
         val entity = event.entity
         if (entity is LivingEntity && !entity.level().isClientSide) {
-            val removed = AttributeManager.removeAttributeMap(entity)
-            if (removed) {
-                LOGGER.debug("移除实体 {} 的属性映射", entity.uuid)
-            }
+            AttributeManager.removeAttributeMap(entity)
         }
     }
 
